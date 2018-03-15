@@ -61,10 +61,8 @@ const addAuthData = (event, bundle, convertedBundle) => {
     convertedBundle.request.auth = [username, password];
   }
 
-  const headers = _.get(bundle, ['request', 'headers']);
-  if (!_.isEmpty(headers)) {
-    _.extend(convertedBundle.request.headers, headers);
-  }
+  const headers = _.get(bundle, ['request', 'headers'], {});
+  _.extend(convertedBundle.request.headers, headers);
 
   // OAuth2 specific
   if (event.name.startsWith('auth.oauth2')) {
