@@ -131,9 +131,6 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
       return undefined;
     });
 
-  const runSessionAuth = bundle =>
-    runEvent({ name: 'auth.session' }, zobj, bundle);
-
   const runTrigger = (bundle, key) => {
     let promise = null;
     const funcs = [];
@@ -189,7 +186,9 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
   const run = (bundle, typeOf, key) => {
     switch (typeOf) {
       case 'auth.session':
-        return runSessionAuth(bundle);
+        return runEvent({name: 'auth.session'}, zobj, bundle);
+      case 'auth.connectionLabel':
+        return runEvent({name: 'auth.connectionLabel'}, zobj, bundle);
       case 'trigger':
         return runTrigger(bundle, key);
     }
