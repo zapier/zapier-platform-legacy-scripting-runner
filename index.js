@@ -131,43 +131,8 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
       return undefined;
     });
 
-  const runSessionAuth = bundle => {
-    return runEvent({ name: 'auth.session' }, zobj, bundle).then(
-      sessionData => {
-        // WB apps in scripting's get_session_info() allowed you to return any
-        // object and that would be added to the authData, but CLI apps require
-        // you to specifically define those. That means that if you return more
-        // than one key from your scripting's get_session_info(), Zapier staff
-        // will need to manually set sessionConfig.legacyProperties.sessionKeyKey
-        // for the dev to select a value from the object returned from
-        // get_session_info().
-
-        let sessionKey;
-        const keys = Object.keys(sessionData);
-        if (_.isEmpty(keys)) {
-          throw new Error('Empty result from get_session_info()');
-        } else if (keys.length === 1) {
-          sessionKey = sessionData[keys[0]];
-        } else {
-          const sessionKeyKey = _.get(
-            app,
-            'authentication.sessionConfig.legacyProperties.sessionKeyKey'
-          );
-          if (!sessionKeyKey) {
-            throw new Error(
-              'Must configure sessionKeyKey if get_session_info() returns more than one item'
-            );
-          }
-          if (keys.indexOf(sessionKeyKey) < 0) {
-            throw new Error(`sessionKeyKey must be in (${keys})`);
-          }
-          sessionKey = sessionData[sessionKeyKey];
-        }
-
-        return { sessionKey };
-      }
-    );
-  };
+  const runSessionAuth = bundle =>
+    runEvent({ name: 'auth.session' }, zobj, bundle);
 
   const runTrigger = (bundle, key) => {
     let promise = null;
