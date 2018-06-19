@@ -184,6 +184,96 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
       return undefined;
     });
 
+  const runOAuth2GetAccessToken = bundle => {
+    let promise = null;
+    const funcs = [];
+
+    bundle._legacyUrl = _.get(
+      app,
+      'authentication.oauth2Config.legacyProperties.accessTokenUrl'
+    );
+    bundle._legacyUrl = replaceVars(bundle._legacyUrl, bundle);
+    bundle.request = {
+      method: 'POST',
+      url: bundle._legacyUrl,
+      body: {
+        code: bundle.inputData.code,
+        client_id: process.env.CLIENT_ID,
+        client_secret: process.env.CLIENT_SECRET,
+        redirect_uri: bundle.inputData.redirect_uri,
+        grant_type: 'authorization_code'
+      },
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    };
+
+    const preMethod = Zap.pre_oauthv2_token;
+    if (preMethod) {
+      promise = runEvent({ name: 'auth.oauth2.token.pre' }, zobj, bundle);
+    } else {
+      promise = Promise.resolve(bundle.request);
+    }
+
+    funcs.push(request => {
+      return zobj.request(request);
+    });
+
+    const postMethod = Zap.post_oauthv2_token;
+    if (postMethod) {
+      funcs.push(response => {
+        response.throwForStatus();
+        return runEvent(
+          { name: 'auth.oauth2.token.post', response },
+          zobj,
+          bundle
+        );
+      });
+    } else {
+      funcs.push(response => {
+        response.throwForStatus();
+        return zobj.JSON.parse(response.content);
+      });
+    }
+
+    // Equivalent to promise.then(funcs[0]).then(funcs[1])...
+    return funcs.reduce((prev, cur) => prev.then(cur), promise);
+  };
+
+  const runOAuth2RefreshAccessToken = bundle => {
+    bundle._legacyUrl = _.get(
+      app,
+      'authentication.oauth2Config.legacyProperties.refreshTokenUrl'
+    );
+    bundle._legacyUrl = replaceVars(bundle._legacyUrl, bundle);
+    bundle.request = {
+      method: 'POST',
+      url: bundle._legacyUrl,
+      body: {
+        client_id: process.env.CLIENT_ID,
+        client_secret: process.env.CLIENT_SECRET,
+        refresh_token: bundle.authData.refresh_token,
+        grant_type: 'refresh_token'
+      },
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    };
+
+    let promise;
+    const preMethod = Zap.pre_oauthv2_token;
+    if (preMethod) {
+      promise = runEvent({ name: 'auth.oauth2.refresh.pre' }, zobj, bundle);
+    } else {
+      promise = Promise.resolve(bundle.request);
+    }
+
+    return promise.then(request => zobj.request(request)).then(response => {
+      response.throwForStatus();
+      return zobj.JSON.parse(response.content);
+    });
+  };
+
   const runTrigger = (bundle, key) => {
     let promise = null;
     const funcs = [];
@@ -242,6 +332,10 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
         return runEvent({ name: 'auth.session' }, zobj, bundle);
       case 'auth.connectionLabel':
         return runEvent({ name: 'auth.connectionLabel' }, zobj, bundle);
+      case 'auth.oauth2.token':
+        return runOAuth2GetAccessToken(bundle);
+      case 'auth.oauth2.refresh':
+        return runOAuth2RefreshAccessToken(bundle);
       case 'trigger':
         return runTrigger(bundle, key);
     }
