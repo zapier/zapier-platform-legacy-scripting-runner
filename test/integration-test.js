@@ -220,5 +220,44 @@ describe('Integration Test', () => {
         should.equal(contact.name, 'Patched by KEY_pre_poll & KEY_post_poll!');
       });
     });
+
+    it('scriptingless hook', () => {
+      const input = createTestInput(
+        appDefinition,
+        'triggers.contact_hook_scriptingless.operation.perform'
+      );
+      input.bundle.cleanedRequest = {
+        id: 9,
+        name: 'Amy'
+      };
+      return app(input).then(output => {
+        output.results.length.should.equal(1);
+        const contact = output.results[0];
+        should.deepEqual(contact, {
+          id: 9,
+          name: 'Amy'
+        });
+      });
+    });
+
+    it('KEY_catch_hook', () => {
+      const input = createTestInput(
+        appDefinition,
+        'triggers.contact_hook_scripting.operation.perform'
+      );
+      input.bundle.cleanedRequest = {
+        id: 10,
+        name: 'Bob'
+      };
+      return app(input).then(output => {
+        output.results.length.should.equal(1);
+        const contact = output.results[0];
+        should.deepEqual(contact, {
+          id: 10,
+          name: 'Bob',
+          luckyNumber: 777
+        });
+      });
+    });
   });
 });

@@ -82,6 +82,12 @@ const legacyScriptingSource = `
         contacts[0].name = 'Patched by KEY_pre_poll & KEY_post_poll!';
         return contacts;
       },
+
+      contact_hook_scripting_catch_hook: function(bundle) {
+        var result = bundle.cleaned_request;
+        result.luckyNumber = 777;
+        return result;
+      }
     };
 `;
 
@@ -141,13 +147,43 @@ const ContactTrigger_pre_post = {
   }
 };
 
+const ContactHook_scriptingless = {
+  key: 'contact_hook_scriptingless',
+  noun: 'Contact',
+  display: {
+    label: 'Contact Hook without Scripting'
+  },
+  operation: {
+    perform: {
+      source:
+        "return z.legacyScripting.run(bundle, 'trigger.hook', 'contact_hook_scriptingless');"
+    }
+  }
+};
+
+const ContactHook_scripting = {
+  key: 'contact_hook_scripting',
+  noun: 'Contact',
+  display: {
+    label: 'Contact Hook with KEY_catch_hook Scripting'
+  },
+  operation: {
+    perform: {
+      source:
+        "return z.legacyScripting.run(bundle, 'trigger.hook', 'contact_hook_scripting');"
+    }
+  }
+};
+
 const App = {
   title: 'Example App',
   triggers: {
     [ContactTrigger_full.key]: ContactTrigger_full,
     [ContactTrigger_pre.key]: ContactTrigger_pre,
     [ContactTrigger_post.key]: ContactTrigger_post,
-    [ContactTrigger_pre_post.key]: ContactTrigger_pre_post
+    [ContactTrigger_pre_post.key]: ContactTrigger_pre_post,
+    [ContactHook_scriptingless.key]: ContactHook_scriptingless,
+    [ContactHook_scripting.key]: ContactHook_scripting
   },
   legacyScriptingSource
 };
