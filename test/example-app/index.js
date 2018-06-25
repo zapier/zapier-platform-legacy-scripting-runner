@@ -83,10 +83,20 @@ const legacyScriptingSource = `
         return contacts;
       },
 
-      contact_hook_scripting_catch_hook: function(bundle) {
+      // To be replaced to 'contact_hook_scripting_catch_hook' on runtime
+      contact_hook_scripting_catch_hook_returning_object: function(bundle) {
         var result = bundle.cleaned_request;
         result.luckyNumber = 777;
         return result;
+      },
+
+      // To be replaced to 'contact_hook_scripting_catch_hook' on runtime
+      contact_hook_scripting_catch_hook_returning_array: function(bundle) {
+        var results = bundle.cleaned_request;
+        for (const contact of results) {
+          contact.luckyNumber = contact.id * 10;
+        }
+        return results;
       }
     };
 `;

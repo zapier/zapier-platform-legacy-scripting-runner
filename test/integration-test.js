@@ -240,9 +240,15 @@ describe('Integration Test', () => {
       });
     });
 
-    it('KEY_catch_hook', () => {
+    it('KEY_catch_hook returns an object', () => {
+      const appDef = _.cloneDeep(appDefinition);
+      appDef.legacyScriptingSource = appDef.legacyScriptingSource.replace(
+        'contact_hook_scripting_catch_hook_returning_object',
+        'contact_hook_scripting_catch_hook'
+      );
+
       const input = createTestInput(
-        appDefinition,
+        appDef,
         'triggers.contact_hook_scripting.operation.perform'
       );
       input.bundle.cleanedRequest = {
@@ -257,6 +263,29 @@ describe('Integration Test', () => {
           name: 'Bob',
           luckyNumber: 777
         });
+      });
+    });
+
+    it('KEY_catch_hook returns an array', () => {
+      const appDef = _.cloneDeep(appDefinition);
+      appDef.legacyScriptingSource = appDef.legacyScriptingSource.replace(
+        'contact_hook_scripting_catch_hook_returning_array',
+        'contact_hook_scripting_catch_hook'
+      );
+
+      const input = createTestInput(
+        appDef,
+        'triggers.contact_hook_scripting.operation.perform'
+      );
+      input.bundle.cleanedRequest = [
+        {id: 11, name: 'Cate'},
+        {id: 22, name: 'Dave'}
+      ];
+      return app(input).then(output => {
+        output.results.should.deepEqual([
+          {id: 11, name: 'Cate', luckyNumber: 110},
+          {id: 22, name: 'Dave', luckyNumber: 220}
+        ]);
       });
     });
   });
