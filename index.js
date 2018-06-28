@@ -28,7 +28,91 @@ const parseFinalResult = (result, event) => {
   return result;
 };
 
-const compileLegacyScriptingSource = source => {
+const convertRequestToWB = request => {
+  const newRequest = _.cloneDeep(request);
+  // TODO
+  return newRequest;
+};
+
+const convertResponseToCLI = response => {
+  const newResponse = _.cloneDeep(response);
+  newResponse.status = response.status_code;
+  // TODO
+  return newResponse;
+};
+
+const applyHttpMiddleware = (befores, afters, zRequest, zobj) => {
+  befores = befores || [];
+  afters = afters || [];
+
+  const beforeMiddleware = (request, z, bundle) =>
+    befores.reduce(
+      (prev, cur) =>
+        prev.then(req => {
+          z.console.log('==================== request');
+          z.console.log(req);
+          const result = cur(req, z, bundle);
+          if (typeof result !== 'object') {
+            throw new Error('Middleware should return an object.');
+          }
+          return result;
+        }),
+      Promise.resolve(request)
+    );
+
+  const afterMiddleware = (response, z, bundle) =>
+    afters.reduce(
+      (prev, cur) =>
+        prev.then(res => {
+          const result = cur(res, z, bundle);
+          if (typeof result !== 'object') {
+            throw new Error('Middleware should return an object.');
+          }
+          return result;
+        }),
+      Promise.resolve(response)
+    );
+
+  return (reqOptions, callback) => {
+    // bundle isn't passed into middleware, but that's ok as long as we make
+    // sure the generated code doesn't use bundle in beforeRequest and
+    // afterResponse middleware
+    let finalRequest;
+    const requestPromise = beforeMiddleware(reqOptions, zobj).then(req => {
+      finalRequest = convertRequestToWB(req);
+      return finalRequest;
+    });
+
+    if (!_.isFunction(callback)) {
+      // sync
+      require('deasync').loopWhile(() => finalRequest === undefined);
+      const origResponse = zRequest(finalRequest);
+
+      let finalResponse;
+      afterMiddleware(convertResponseToCLI(origResponse), zobj).then(res => {
+        finalResponse = res;
+      });
+
+      require('deasync').loopWhile(() => finalResponse === undefined);
+      return finalResponse;
+    }
+
+    requestPromise.then(newReq => {
+      zRequest(newReq, (err, res) => {
+        if (!res) {
+          callback(err, res);
+        }
+        afterMiddleware(convertResponseToCLI(res), zobj).then(newResponse => {
+          callback(err, newResponse);
+        });
+      });
+    });
+
+    return undefined;
+  };
+};
+
+const compileLegacyScriptingSource = (source, zobj, app) => {
   const { DOMParser, XMLSerializer } = require('xmldom');
   const {
     ErrorException,
@@ -38,6 +122,14 @@ const compileLegacyScriptingSource = source => {
     RefreshTokenException,
     InvalidSessionException
   } = require('./exceptions');
+
+  const z = require('./z');
+  z.request = applyHttpMiddleware(
+    app.beforeRequest,
+    app.afterResponse,
+    z.request,
+    zobj
+  );
 
   return new Function( // eslint-disable-line no-new-func
     '_',
@@ -66,7 +158,7 @@ const compileLegacyScriptingSource = source => {
     XMLSerializer,
     require('./atob'),
     require('./btoa'),
-    require('./z'),
+    z,
     require('./$'),
     ErrorException,
     HaltedException,
@@ -141,7 +233,7 @@ const createEventNameToMethodMapping = key => {
 
 const legacyScriptingRunner = (Zap, zobj, app) => {
   if (typeof Zap === 'string') {
-    Zap = compileLegacyScriptingSource(Zap);
+    Zap = compileLegacyScriptingSource(Zap, zobj, app);
   }
 
   // Does string replacement ala WB, using bundle and a potential result object
