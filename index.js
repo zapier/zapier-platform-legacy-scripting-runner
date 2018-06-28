@@ -1,6 +1,7 @@
 'use strict';
 
 const _ = require('lodash');
+const deasync = require('deasync');
 
 const bundleConverter = require('./bundle');
 const legacyz = require('./z');
@@ -86,7 +87,7 @@ const applyHttpMiddleware = (befores, afters, zRequest, zobj, bundle) => {
 
     if (!_.isFunction(callback)) {
       // sync
-      require('deasync').loopWhile(() => finalRequest === undefined);
+      deasync.loopWhile(() => finalRequest === undefined);
       const origResponse = zRequest(finalRequest);
 
       let finalResponse;
@@ -96,7 +97,7 @@ const applyHttpMiddleware = (befores, afters, zRequest, zobj, bundle) => {
         }
       );
 
-      require('deasync').loopWhile(() => finalResponse === undefined);
+      deasync.loopWhile(() => finalResponse === undefined);
       return finalResponse;
     }
 
