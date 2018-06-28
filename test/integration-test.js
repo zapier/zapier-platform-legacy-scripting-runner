@@ -3,12 +3,13 @@
 const _ = require('lodash');
 const should = require('should');
 
+const apiKeyAuth = require('./example-app/api-key');
 const appDefinition = require('./example-app');
-const oauth2Config = require('./example-app/oauth2');
-const sessionAuthConfig = require('./example-app/session-auth');
 const createApp = require('zapier-platform-core/src/create-app');
 const createInput = require('zapier-platform-core/src/tools/create-input');
+const oauth2Config = require('./example-app/oauth2');
 const schemaTools = require('zapier-platform-core/src/tools/schema');
+const sessionAuthConfig = require('./example-app/session-auth');
 
 const withAuth = (appDef, authConfig) => {
   return _.extend(_.cloneDeep(appDef), _.cloneDeep(authConfig));
@@ -166,13 +167,18 @@ describe('Integration Test', () => {
   });
 
   describe('trigger', () => {
-    const app = createApp(appDefinition);
+    const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
+    const compiledApp = schemaTools.prepareApp(appDefWithAuth);
+    const app = createApp(appDefWithAuth);
 
     it('KEY_poll', () => {
       const input = createTestInput(
-        appDefinition,
+        compiledApp,
         'triggers.contact_full.operation.perform'
       );
+      input.bundle.authData = {
+        api_key: 'secret'
+      };
       return app(input).then(output => {
         output.results.length.should.greaterThan(1);
 
@@ -183,9 +189,12 @@ describe('Integration Test', () => {
 
     it('KEY_pre_poll', () => {
       const input = createTestInput(
-        appDefinition,
+        compiledApp,
         'triggers.contact_pre.operation.perform'
       );
+      input.bundle.authData = {
+        api_key: 'secret'
+      };
       return app(input).then(output => {
         output.results.length.should.equal(1);
 
@@ -196,9 +205,12 @@ describe('Integration Test', () => {
 
     it('KEY_post_poll', () => {
       const input = createTestInput(
-        appDefinition,
+        compiledApp,
         'triggers.contact_post.operation.perform'
       );
+      input.bundle.authData = {
+        api_key: 'secret'
+      };
       return app(input).then(output => {
         output.results.length.should.greaterThan(1);
 
@@ -209,9 +221,12 @@ describe('Integration Test', () => {
 
     it('KEY_pre_poll & KEY_post_poll', () => {
       const input = createTestInput(
-        appDefinition,
+        compiledApp,
         'triggers.contact_pre_post.operation.perform'
       );
+      input.bundle.authData = {
+        api_key: 'secret'
+      };
       return app(input).then(output => {
         output.results.length.should.equal(1);
 
@@ -223,7 +238,7 @@ describe('Integration Test', () => {
 
     it('scriptingless hook', () => {
       const input = createTestInput(
-        appDefinition,
+        compiledApp,
         'triggers.contact_hook_scriptingless.operation.perform'
       );
       input.bundle.cleanedRequest = {

@@ -4,18 +4,24 @@ const deasync = require('deasync');
 const crypto = require('crypto');
 
 // Converts WB `bundle.request` format to something `request` can use
-const convertBundleRequest = (bundleOrBundleRequest) => {
+const convertBundleRequest = bundleOrBundleRequest => {
   bundleOrBundleRequest = _.extend({}, bundleOrBundleRequest);
 
   // LEGACY: allow for the whole bundle to mistakingly be sent over
-  const bundleRequest = bundleOrBundleRequest.request ? bundleOrBundleRequest.request : bundleOrBundleRequest;
+  const bundleRequest = bundleOrBundleRequest.request
+    ? bundleOrBundleRequest.request
+    : bundleOrBundleRequest;
 
   let auth = null;
 
-  if (bundleRequest.auth && _.isArray(bundleRequest.auth) && bundleRequest.auth.length === 2) {
+  if (
+    bundleRequest.auth &&
+    _.isArray(bundleRequest.auth) &&
+    bundleRequest.auth.length === 2
+  ) {
     auth = {
       user: bundleRequest.auth[0],
-      password: bundleRequest.auth[1],
+      password: bundleRequest.auth[1]
     };
   }
 
@@ -29,7 +35,7 @@ const convertBundleRequest = (bundleOrBundleRequest) => {
   return bundleRequest;
 };
 
-const parseBody = (body) => {
+const parseBody = body => {
   if (body) {
     if (typeof body === 'string' || body.writeInt32BE) {
       return String(body);
@@ -42,12 +48,12 @@ const parseBody = (body) => {
 };
 
 // Converts `request`'s response into a simplified object
-const convertResponse = (response) => {
+const convertResponse = response => {
   if (response) {
     return {
       status_code: response.statusCode,
       headers: _.extend({}, response.headers),
-      content: parseBody(response.body),
+      content: parseBody(response.body)
     };
   }
 
@@ -64,7 +70,7 @@ const z = {
   },
 
   JSON: {
-    parse: (str) => {
+    parse: str => {
       try {
         return JSON.parse(str);
       } catch (err) {
@@ -78,20 +84,36 @@ const z = {
       }
     },
 
-    stringify: (str) => {
+    stringify: str => {
       try {
         return JSON.stringify(str);
       } catch (err) {
         throw new Error(err.message);
       }
-    },
+    }
   },
 
   request: (bundleRequest, callback) => {
     const options = convertBundleRequest(bundleRequest);
 
     if (_.isFunction(callback)) {
-      return request(options, (err, response) => callback(err, convertResponse(response)));
+      return request(options, (err, response) =>
+        callback(err, convertResponse(response))
+      );
+    }
+
+    const response = syncRequest(options);
+    return convertResponse(response);
+  },
+
+  // TODO: Reuse code
+  origRequest: (bundleRequest, callback) => {
+    const options = convertBundleRequest(bundleRequest);
+
+    if (_.isFunction(callback)) {
+      return request(options, (err, response) =>
+        callback(err, convertResponse(response))
+      );
     }
 
     const response = syncRequest(options);
@@ -112,7 +134,7 @@ const z = {
     return hasher.digest(encoding);
   },
 
-  snipify: (string) => {
+  snipify: string => {
     const SALT = process.env.SECRET_SALT || 'doesntmatterreally';
     if (!_.isString(string)) {
       return null;
@@ -123,7 +145,7 @@ const z = {
     const result = z.hash('sha256', string);
 
     return `:censored:${length}:${result.substr(0, 10)}:`;
-  },
+  }
 };
 
 module.exports = z;
