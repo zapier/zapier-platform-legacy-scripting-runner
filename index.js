@@ -336,6 +336,19 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
     });
   };
 
+  const runHookSubscribe = (bundle, key) => {
+    return runEventCombo(
+      bundle,
+      key,
+      'trigger.hook.subscribe.pre',
+      'trigger.hook.subscribe.post'
+    );
+  };
+
+  const runHookUnsubscribe = (bundle, key) => {
+    return runEventCombo(bundle, key, 'trigger.hook.subscribe.pre');
+  };
+
   // core exposes this function as z.legacyScripting.run() method that we can
   // run legacy scripting easily like z.legacyScripting.run(bundle, 'trigger', 'KEY')
   // in CLI to simulate how WB backend runs legacy scripting.
@@ -353,10 +366,14 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
         return runTrigger(bundle, key);
       case 'trigger.hook':
         return runHook(bundle, key);
+      case 'trigger.hook.subscribe':
+        return runHookSubscribe(bundle, key);
+      case 'trigger.hook.unsubscribe':
+        return runHookUnsubscribe(bundle, key);
     }
 
     // TODO: auth, create, and search
-    return Promise.resolve();
+    throw new Error(`unrecognized typeOf '${typeOf}'`);
   };
 
   return {
