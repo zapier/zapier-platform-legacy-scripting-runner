@@ -77,11 +77,6 @@ const compileLegacyScriptingSource = source => {
   );
 };
 
-const promiseChain = (initialPromise, callbacks) => {
-  // Equivalent to initialPromise.then(callbacks[0]).then(callbacks[1])...
-  return callbacks.reduce((prev, cur) => prev.then(cur), initialPromise);
-};
-
 const applyBeforeMiddleware = (befores, request, z, bundle) => {
   befores = befores || [];
   return befores.reduce(
@@ -206,10 +201,18 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
     preEventName,
     postEventName,
     fullEventName,
-    ensureArray = false
+    options
   ) => {
+    options = _.extend(
+      {
+        checkResponseStatus: true,
+        parseResponse: true,
+        ensureArray: false
+      },
+      options
+    );
+
     let promise;
-    const funcs = [];
 
     const eventNameToMethod = createEventNameToMethodMapping(key);
 
@@ -233,19 +236,26 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
         promise = Promise.resolve(bundle.request);
       }
 
-      funcs.push(request => zobj.request(request));
+      promise = promise.then(request => zobj.request(request));
 
       const postMethod = postMethodName ? Zap[postMethodName] : null;
       if (postMethod) {
-        funcs.push(response => {
+        promise = promise.then(response => {
           response.throwForStatus();
           return runEvent({ key, name: postEventName, response }, zobj, bundle);
         });
       } else {
-        funcs.push(response => {
-          response.throwForStatus();
+        promise = promise.then(response => {
+          if (options.checkResponseStatus) {
+            response.throwForStatus();
+          }
+          if (!options.parseResponse) {
+            return response;
+          }
+
           const data = zobj.JSON.parse(response.content);
-          if (!ensureArray) {
+
+          if (!options.ensureArray) {
             return data;
           }
 
@@ -265,7 +275,7 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
       }
     }
 
-    return promiseChain(promise, funcs);
+    return promise;
   };
 
   const runOAuth2GetAccessToken = bundle => {
@@ -324,7 +334,7 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
       'trigger.pre',
       'trigger.post',
       'trigger.poll',
-      true
+      { ensureArray: true }
     );
   };
 
@@ -342,6 +352,21 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
   };
 
   const runHookSubscribe = (bundle, key) => {
+    const url = _.get(app, 'legacyProperties.subscribeUrl');
+    const event = _.get(
+      app,
+      `triggers.${key}.operation.legacyProperties.event`
+    );
+
+    const request = bundle.request;
+    request.method = 'POST';
+    request.url = url;
+
+    const body = request.body;
+    body.subscription_url = bundle.targetUrl; // backward compatibility
+    body.target_url = bundle.targetUrl;
+    body.event = event;
+
     return runEventCombo(
       bundle,
       key,
@@ -351,7 +376,29 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
   };
 
   const runHookUnsubscribe = (bundle, key) => {
-    return runEventCombo(bundle, key, 'trigger.hook.subscribe.pre');
+    const url = _.get(app, 'legacyProperties.unsubscribeUrl');
+    const event = _.get(
+      app,
+      `triggers.${key}.operation.legacyProperties.event`
+    );
+
+    const request = bundle.request;
+    request.method = 'POST';
+    request.url = url;
+
+    const body = request.body;
+    body.subscription_url = bundle.targetUrl; // backward compatibility
+    body.target_url = bundle.targetUrl;
+    body.event = event;
+
+    return runEventCombo(
+      bundle,
+      key,
+      'trigger.hook.unsubscribe.pre',
+      undefined,
+      undefined,
+      { parseResponse: false }
+    );
   };
 
   // core exposes this function as z.legacyScripting.run() method that we can
@@ -384,10 +431,12 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
           return runTrigger(bundle, key);
         case 'trigger.hook':
           return runHook(bundle, key);
+        case 'trigger.hook.subscribe':
+          return runHookSubscribe(bundle, key);
+        case 'trigger.hook.unsubscribe':
+          return runHookUnsubscribe(bundle, key);
 
         // TODO: Add support for these:
-        // trigger.hook.subscribe
-        // trigger.hook.unsubscribe
         // trigger.output
         // create
         // create.input

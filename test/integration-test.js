@@ -295,5 +295,38 @@ describe('Integration Test', () => {
         ]);
       });
     });
+
+    it('pre_subscribe & post_subscribe', () => {
+      const input = createTestInput(
+        compiledApp,
+        'triggers.contact_hook_scripting.operation.performSubscribe'
+      );
+      input.bundle.authData = { api_key: 'hey hey' };
+      return app(input).then(output => {
+        should.equal(output.results.json.event, 'contact.created');
+        should.equal(
+          output.results.json.hidden_message,
+          'pre_subscribe was here!'
+        );
+        should.equal(output.results.headers['X-Api-Key'], 'hey hey');
+        should.equal(output.results.hiddenMessage, 'post_subscribe was here!');
+      });
+    });
+
+    it('pre_unsubscribe', () => {
+      const input = createTestInput(
+        compiledApp,
+        'triggers.contact_hook_scripting.operation.performUnsubscribe'
+      );
+      input.bundle.authData = { api_key: 'yo yo' };
+      return app(input).then(output => {
+        should.equal(output.results.request.method, 'DELETE');
+
+        const echoed = output.results.json;
+        should.equal(echoed.json.event, 'contact.created');
+        should.equal(echoed.json.hidden_message, 'pre_unsubscribe was here!');
+        should.equal(echoed.headers['X-Api-Key'], 'yo yo');
+      });
+    });
   });
 });
