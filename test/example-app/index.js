@@ -212,6 +212,21 @@ const ContactHook_scripting = {
   }
 };
 
+const TestTrigger = {
+  key: 'test',
+  display: {
+    label: 'Test Auth'
+  },
+  operation: {
+    perform: {
+      source: "return z.legacyScripting.run(bundle, 'trigger', 'test');"
+    },
+    legacyProperties: {
+      url: 'https://auth-json-server.zapier.ninja/me'
+    }
+  }
+};
+
 const App = {
   title: 'Example App',
   triggers: {
@@ -220,7 +235,8 @@ const App = {
     [ContactTrigger_post.key]: ContactTrigger_post,
     [ContactTrigger_pre_post.key]: ContactTrigger_pre_post,
     [ContactHook_scriptingless.key]: ContactHook_scriptingless,
-    [ContactHook_scripting.key]: ContactHook_scripting
+    [ContactHook_scripting.key]: ContactHook_scripting,
+    [TestTrigger.key]: TestTrigger
   },
   legacyProperties: {
     subscribeUrl: 'http://zapier-httpbin.herokuapp.com/post',

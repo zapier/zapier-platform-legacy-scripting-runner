@@ -328,13 +328,16 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
     const url = _.get(app, `triggers.${key}.operation.legacyProperties.url`);
     bundle.request.url = url;
 
+    // For auth test we don't care if result is an array
+    const ensureArray = !_.get(bundle, 'meta.test_poll');
+
     return runEventCombo(
       bundle,
       key,
       'trigger.pre',
       'trigger.post',
       'trigger.poll',
-      { ensureArray: true }
+      { ensureArray }
     );
   };
 

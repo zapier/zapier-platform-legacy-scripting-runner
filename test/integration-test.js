@@ -228,6 +228,19 @@ describe('Integration Test', () => {
       });
     });
 
+    it("auth test shouldn't require array result", () => {
+      const input = createTestInput(
+        compiledApp,
+        'triggers.test.operation.perform'
+      );
+      input.bundle.authData = { api_key: 'secret' };
+      input.bundle.meta = { test_poll: true };
+      return app(input).then(output => {
+        should.equal(output.results.id, 1);
+        should.equal(output.results.username, 'Bret');
+      });
+    });
+
     it('scriptingless hook', () => {
       const input = createTestInput(
         appDefinition,
