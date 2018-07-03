@@ -211,7 +211,10 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
         // * ensureArray: could be one of the following values:
         //   - false: returns whatever data parsed from response content
         //   - 'wrap': returns [obj] if response is an object
-        //   - 'first': returns the first top-level array in the response if response is an object
+        //   - 'first':
+        //       returns the first top-level array in the response if response
+        //       is an object. This is the fallback behavior if ensureArray is
+        //       not false nor 'wrap'.
         checkResponseStatus: true,
         parseResponse: true,
         ensureArray: false
