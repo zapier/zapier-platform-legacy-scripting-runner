@@ -205,6 +205,13 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
   ) => {
     options = _.extend(
       {
+        // Options to deal with the response when post method is not defined
+        // * checkResponseStatus: throws an error if response status is not 2xx
+        // * parseResponse: assumes response content is JSON and parse it
+        // * ensureArray: could be one of the following values:
+        //   - false: returns whatever data parsed from response content
+        //   - 'wrap': returns [obj] if response is an object
+        //   - 'first': returns the first top-level array in the response if response is an object
         checkResponseStatus: true,
         parseResponse: true,
         ensureArray: false
@@ -262,11 +269,16 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
           if (Array.isArray(data)) {
             return data;
           } else if (data && typeof data === 'object') {
-            // Find the first array in the response
-            for (const k in data) {
-              const value = data[k];
-              if (Array.isArray(value)) {
-                return value;
+            if (options.ensureArray === 'wrap') {
+              // Used by auth label and auth test
+              return [data];
+            } else {
+              // Find the first array in the response
+              for (const k in data) {
+                const value = data[k];
+                if (Array.isArray(value)) {
+                  return value;
+                }
               }
             }
           }
@@ -328,8 +340,8 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
     const url = _.get(app, `triggers.${key}.operation.legacyProperties.url`);
     bundle.request.url = url;
 
-    // For auth test we don't care if result is an array
-    const ensureArray = !_.get(bundle, 'meta.test_poll');
+    // For auth test we wrap the resposne as an array if it isn't one
+    const ensureArray = _.get(bundle, 'meta.test_poll') ? 'wrap' : 'first';
 
     return runEventCombo(
       bundle,

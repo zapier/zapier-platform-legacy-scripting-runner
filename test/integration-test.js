@@ -236,8 +236,11 @@ describe('Integration Test', () => {
       input.bundle.authData = { api_key: 'secret' };
       input.bundle.meta = { test_poll: true };
       return app(input).then(output => {
-        should.equal(output.results.id, 1);
-        should.equal(output.results.username, 'Bret');
+        should.equal(output.results.length, 1);
+
+        const user = output.results[0];
+        should.equal(user.id, 1);
+        should.equal(user.username, 'Bret');
       });
     });
 
