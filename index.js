@@ -277,7 +277,7 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
       promise = promise.then(result => {
         if (Array.isArray(result)) {
           return result;
-        } else if (result && typeof ressult === 'object') {
+        } else if (result && typeof result === 'object') {
           if (options.ensureArray === 'wrap') {
             // Used by auth label and auth test
             return [result];
@@ -382,24 +382,28 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
 
     let promise = runCatchHook(bundle, key);
     if (hookType === 'notification') {
-      promise = promise.then(hookPayloads => {
-        const results = hookPayloads.map(payload => {
-          const url = payload.resource_url;
-          if (!url) {
-            return payload;
-          }
+      promise = promise
+        .then(hookPayloads => {
+          const results = hookPayloads.map(payload => {
+            const url = payload.resource_url;
+            if (!url) {
+              return payload;
+            }
 
-          const bundleClone = _.cloneDeep(bundle);
-          bundleClone.request.url = url;
-          return runEventCombo(
-            bundleClone,
-            key,
-            'trigger.hook.pre',
-            'trigger.hook.post'
-          );
-        });
-        return Promise.all(results);
-      });
+            const bundleClone = _.cloneDeep(bundle);
+            bundleClone.request.url = url;
+            return runEventCombo(
+              bundleClone,
+              key,
+              'trigger.hook.pre',
+              'trigger.hook.post',
+              undefined,
+              { ensureArray: 'wrap' }
+            );
+          });
+          return Promise.all(results);
+        })
+        .then(_.flatten);
     }
     return promise;
   };

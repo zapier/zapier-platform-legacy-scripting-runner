@@ -266,7 +266,7 @@ describe('Integration Test', () => {
       });
     });
 
-    it('KEY_catch_hook returns an object', () => {
+    it('KEY_catch_hook => object', () => {
       const appDef = _.cloneDeep(appDefinition);
       appDef.legacyScriptingSource = appDef.legacyScriptingSource.replace(
         'contact_hook_scripting_catch_hook_returning_object',
@@ -291,7 +291,7 @@ describe('Integration Test', () => {
       });
     });
 
-    it('KEY_catch_hook returns an array', () => {
+    it('KEY_catch_hook => array', () => {
       const appDef = _.cloneDeep(appDefinition);
       appDef.legacyScriptingSource = appDef.legacyScriptingSource.replace(
         'contact_hook_scripting_catch_hook_returning_array',
@@ -318,7 +318,7 @@ describe('Integration Test', () => {
       });
     });
 
-    it('KEY_catch_hook returns an object & KEY_pre_hook', () => {
+    it('KEY_catch_hook => object & KEY_pre_hook', () => {
       const appDef = _.cloneDeep(appDefinition);
       appDef.triggers.contact_hook_scripting.operation.legacyProperties.hookType =
         'notification';
@@ -353,7 +353,7 @@ describe('Integration Test', () => {
       });
     });
 
-    it('KEY_catch_hook returns an array & KEY_pre_hook', () => {
+    it('KEY_catch_hook => array & KEY_pre_hook', () => {
       const appDef = _.cloneDeep(appDefinition);
       appDef.triggers.contact_hook_scripting.operation.legacyProperties.hookType =
         'notification';
@@ -392,7 +392,7 @@ describe('Integration Test', () => {
       });
     });
 
-    it('KEY_catch_hook & KEY_post_hook returns an object', () => {
+    it('KEY_catch_hook => object & KEY_post_hook => object', () => {
       const appDef = _.cloneDeep(appDefinition);
       appDef.triggers.contact_hook_scripting.operation.legacyProperties.hookType =
         'notification';
@@ -427,7 +427,7 @@ describe('Integration Test', () => {
       });
     });
 
-    it.only('KEY_catch_hook & KEY_post_hook returns an array', () => {
+    it('KEY_catch_hook => array & KEY_post_hook => array', () => {
       const appDef = _.cloneDeep(appDefinition);
       appDef.triggers.contact_hook_scripting.operation.legacyProperties.hookType =
         'notification';
@@ -461,6 +461,160 @@ describe('Integration Test', () => {
         should.equal(movies[0].year, 2017);
         should.equal(movies[1].id, 1);
         should.equal(movies[1].title, 'title 1');
+        should.equal(movies[1].year, 2017);
+      });
+    });
+
+    it('KEY_catch_hook => object & KEY_post_hook => array', () => {
+      const appDef = _.cloneDeep(appDefinition);
+      appDef.triggers.contact_hook_scripting.operation.legacyProperties.hookType =
+        'notification';
+      appDef.legacyScriptingSource = appDef.legacyScriptingSource.replace(
+        'contact_hook_scripting_catch_hook_returning_object',
+        'contact_hook_scripting_catch_hook'
+      );
+      appDef.legacyScriptingSource = appDef.legacyScriptingSource.replace(
+        'contact_hook_scripting_post_hook_returning_array',
+        'contact_hook_scripting_post_hook'
+      );
+      const appDefWithAuth = withAuth(appDef, apiKeyAuth);
+      const compiledApp = schemaTools.prepareApp(appDefWithAuth);
+      const app = createApp(appDefWithAuth);
+
+      const input = createTestInput(
+        compiledApp,
+        'triggers.contact_hook_scripting.operation.perform'
+      );
+      input.bundle.authData = { api_key: 'secret' };
+      input.bundle.cleanedRequest = {
+        id: 3,
+        title: 'Dont Care'
+      };
+      return app(input).then(output => {
+        output.results.length.should.equal(1);
+
+        const movie = output.results[0];
+        should.equal(movie.id, 3);
+        should.equal(movie.title, 'title 3');
+        should.equal(movie.year, 2017);
+      });
+    });
+
+    it('KEY_catch_hook => array & KEY_post_hook => object', () => {
+      const appDef = _.cloneDeep(appDefinition);
+      appDef.triggers.contact_hook_scripting.operation.legacyProperties.hookType =
+        'notification';
+      appDef.legacyScriptingSource = appDef.legacyScriptingSource.replace(
+        'contact_hook_scripting_catch_hook_returning_array',
+        'contact_hook_scripting_catch_hook'
+      );
+      appDef.legacyScriptingSource = appDef.legacyScriptingSource.replace(
+        'contact_hook_scripting_post_hook_returning_object',
+        'contact_hook_scripting_post_hook'
+      );
+      const appDefWithAuth = withAuth(appDef, apiKeyAuth);
+      const compiledApp = schemaTools.prepareApp(appDefWithAuth);
+      const app = createApp(appDefWithAuth);
+
+      const input = createTestInput(
+        compiledApp,
+        'triggers.contact_hook_scripting.operation.perform'
+      );
+      input.bundle.authData = { api_key: 'secret' };
+      input.bundle.cleanedRequest = [
+        { id: 3, title: 'Dont Care' },
+        { id: 1, title: 'Really Dont Care' }
+      ];
+      return app(input).then(output => {
+        const movies = output.results;
+        should.equal(movies.length, 2);
+
+        should.equal(movies[0].id, 3);
+        should.equal(movies[0].title, 'title 3');
+        should.equal(movies[0].year, 2018);
+        should.equal(movies[1].id, 1);
+        should.equal(movies[1].title, 'title 1');
+        should.equal(movies[1].year, 2018);
+      });
+    });
+
+    it('KEY_catch_hook => object & KEY_pre_hook & KEY_post_hook => object', () => {
+      const appDef = _.cloneDeep(appDefinition);
+      appDef.triggers.contact_hook_scripting.operation.legacyProperties.hookType =
+        'notification';
+      appDef.legacyScriptingSource = appDef.legacyScriptingSource.replace(
+        'contact_hook_scripting_catch_hook_returning_object',
+        'contact_hook_scripting_catch_hook'
+      );
+      appDef.legacyScriptingSource = appDef.legacyScriptingSource.replace(
+        'contact_hook_scripting_pre_hook_disabled',
+        'contact_hook_scripting_pre_hook'
+      );
+      appDef.legacyScriptingSource = appDef.legacyScriptingSource.replace(
+        'contact_hook_scripting_post_hook_returning_object',
+        'contact_hook_scripting_post_hook'
+      );
+      const appDefWithAuth = withAuth(appDef, apiKeyAuth);
+      const compiledApp = schemaTools.prepareApp(appDefWithAuth);
+      const app = createApp(appDefWithAuth);
+
+      const input = createTestInput(
+        compiledApp,
+        'triggers.contact_hook_scripting.operation.perform'
+      );
+      input.bundle.authData = { api_key: 'secret' };
+      input.bundle.cleanedRequest = {
+        id: 3,
+        title: 'Dont Care'
+      };
+      return app(input).then(output => {
+        output.results.length.should.equal(1);
+
+        const movie = output.results[0];
+        should.equal(movie.id, 2);
+        should.equal(movie.title, 'title 2');
+        should.equal(movie.year, 2018);
+      });
+    });
+
+    it('KEY_catch_hook => array & KEY_pre_hook & KEY_post_hook => array', () => {
+      const appDef = _.cloneDeep(appDefinition);
+      appDef.triggers.contact_hook_scripting.operation.legacyProperties.hookType =
+        'notification';
+      appDef.legacyScriptingSource = appDef.legacyScriptingSource.replace(
+        'contact_hook_scripting_catch_hook_returning_array',
+        'contact_hook_scripting_catch_hook'
+      );
+      appDef.legacyScriptingSource = appDef.legacyScriptingSource.replace(
+        'contact_hook_scripting_pre_hook_disabled',
+        'contact_hook_scripting_pre_hook'
+      );
+      appDef.legacyScriptingSource = appDef.legacyScriptingSource.replace(
+        'contact_hook_scripting_post_hook_returning_array',
+        'contact_hook_scripting_post_hook'
+      );
+      const appDefWithAuth = withAuth(appDef, apiKeyAuth);
+      const compiledApp = schemaTools.prepareApp(appDefWithAuth);
+      const app = createApp(appDefWithAuth);
+
+      const input = createTestInput(
+        compiledApp,
+        'triggers.contact_hook_scripting.operation.perform'
+      );
+      input.bundle.authData = { api_key: 'secret' };
+      input.bundle.cleanedRequest = [
+        { id: 3, title: 'Dont Care' },
+        { id: 1, title: 'Really Dont Care' }
+      ];
+      return app(input).then(output => {
+        const movies = output.results;
+        should.equal(movies.length, 2);
+
+        should.equal(movies[0].id, 2);
+        should.equal(movies[0].title, 'title 2');
+        should.equal(movies[0].year, 2017);
+        should.equal(movies[1].id, 2);
+        should.equal(movies[1].title, 'title 2');
         should.equal(movies[1].year, 2017);
       });
     });
