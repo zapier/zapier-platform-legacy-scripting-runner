@@ -81,9 +81,6 @@ const legacyScriptingSource = `
       contact_hook_scripting_catch_hook_returning_object: function(bundle) {
         var result = bundle.cleaned_request;
         result.luckyNumber = 777;
-
-        // Use a different resource type to test pre_hook and post_hook
-        result.resource_url = 'https://auth-json-server.zapier.ninja/movies/' + result.id;
         return result;
       },
 
@@ -92,32 +89,35 @@ const legacyScriptingSource = `
         var results = bundle.cleaned_request;
         for (const contact of results) {
           contact.luckyNumber = contact.id * 10;
-
-          // Use a different resource type to test pre_hook and post_hook
-          contact.resource_url =
-            'https://auth-json-server.zapier.ninja/movies/' + contact.id;
         }
         return results;
       },
 
       // To be replaced with 'contact_hook_scripting_pre_hook' at runtime to enable
       contact_hook_scripting_pre_hook_disabled: function(bundle) {
-        bundle.request.url = 'https://auth-json-server.zapier.ninja/movies/2';
+        bundle.request.url = bundle.request.url.replace('/users/', '/movies/');
         return bundle.request;
       },
 
       // To be replaced with 'contact_hook_scripting_post_hook' at runtime to enable
       contact_hook_scripting_post_hook_returning_object: function(bundle) {
-        var movie = z.JSON.parse(bundle.response.content);
-        movie.year = 2018;
-        return movie;
+        var thing = z.JSON.parse(bundle.response.content);
+        thing.year = 2018;
+        return thing;
       },
 
       // To be replaced with 'contact_hook_scripting_post_hook' at runtime to enable
       contact_hook_scripting_post_hook_returning_array: function(bundle) {
-        var movie = z.JSON.parse(bundle.response.content);
-        movie.year = 2017;
-        return [movie];
+        var thing = z.JSON.parse(bundle.response.content);
+        thing.year = 2017;
+
+        var anotherThing = {
+          id: 5555,
+          name: 'The Thing',
+          year: 2016
+        };
+
+        return [thing, anotherThing];
       },
 
       pre_subscribe: function(bundle) {

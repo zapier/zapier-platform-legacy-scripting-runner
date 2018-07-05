@@ -374,38 +374,41 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
     });
   };
 
+  const runPrePostHook = (bundle, key) => {
+    return runEventCombo(bundle, key, 'trigger.hook.pre', 'trigger.hook.post');
+  };
+
   const runHook = (bundle, key) => {
     const hookType = _.get(
       app,
       `triggers.${key}.operation.legacyProperties.hookType`
     );
 
-    let promise = runCatchHook(bundle, key);
-    if (hookType === 'notification') {
-      promise = promise
-        .then(hookPayloads => {
-          const results = hookPayloads.map(payload => {
-            const url = payload.resource_url;
-            if (!url) {
-              return payload;
-            }
-
-            const bundleClone = _.cloneDeep(bundle);
-            bundleClone.request.url = url;
-            return runEventCombo(
-              bundleClone,
-              key,
-              'trigger.hook.pre',
-              'trigger.hook.post',
-              undefined,
-              { ensureArray: 'wrap' }
-            );
-          });
-          return Promise.all(results);
-        })
-        .then(_.flatten);
+    let cleanedArray;
+    if (Array.isArray(bundle.cleanedRequest)) {
+      cleanedArray = bundle.cleanedRequest;
+    } else if (
+      bundle.cleanedRequest &&
+      typeof bundle.cleanedRequest === 'object'
+    ) {
+      cleanedArray = [bundle.cleanedRequest];
     }
-    return promise;
+
+    const shouldRunPrePostHook =
+      hookType === 'notification' &&
+      cleanedArray &&
+      cleanedArray.every(x => x.resource_url);
+
+    if (shouldRunPrePostHook) {
+      const promises = cleanedArray.map(obj => {
+        const bund = _.cloneDeep(bundle);
+        bund.request.url = obj.resource_url;
+        return runPrePostHook(bund, key);
+      });
+      return Promise.all(promises).then(_.flatten);
+    }
+
+    return runCatchHook(bundle, key);
   };
 
   const runHookSubscribe = (bundle, key) => {

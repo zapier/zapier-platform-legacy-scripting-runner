@@ -318,7 +318,44 @@ describe('Integration Test', () => {
       });
     });
 
-    it('KEY_catch_hook => object & KEY_pre_hook', () => {
+    it('REST Hook should ignore KEY_pre_hook', () => {
+      // Not a Notication REST hook, KEY_pre_hook should be ignored
+      const appDef = _.cloneDeep(appDefinition);
+      appDef.legacyScriptingSource = appDef.legacyScriptingSource.replace(
+        'contact_hook_scripting_catch_hook_returning_object',
+        'contact_hook_scripting_catch_hook'
+      );
+      appDef.legacyScriptingSource = appDef.legacyScriptingSource.replace(
+        'contact_hook_scripting_pre_hook_disabled',
+        'contact_hook_scripting_pre_hook'
+      );
+      const appDefWithAuth = withAuth(appDef, apiKeyAuth);
+      const compiledApp = schemaTools.prepareApp(appDefWithAuth);
+      const app = createApp(appDefWithAuth);
+
+      const input = createTestInput(
+        compiledApp,
+        'triggers.contact_hook_scripting.operation.perform'
+      );
+      input.bundle.authData = { api_key: 'secret' };
+      input.bundle.cleanedRequest = {
+        id: 3,
+        name: 'Eric',
+        resource_url: 'https://dont.care'
+      };
+      return app(input).then(output => {
+        output.results.length.should.equal(1);
+
+        const contact = output.results[0];
+        should.equal(contact.id, 3);
+        should.equal(contact.name, 'Eric');
+        should.equal(contact.luckyNumber, 777);
+      });
+    });
+
+    it('Notification REST Hook w/o resource_url should ignore KEY_pre_hook', () => {
+      // Notication REST hook should fall back what REST Hook does when the
+      // hook doesn't have resource_url
       const appDef = _.cloneDeep(appDefinition);
       appDef.triggers.contact_hook_scripting.operation.legacyProperties.hookType =
         'notification';
@@ -341,26 +378,22 @@ describe('Integration Test', () => {
       input.bundle.authData = { api_key: 'secret' };
       input.bundle.cleanedRequest = {
         id: 3,
-        title: 'Dont Care'
+        name: 'Eric'
       };
       return app(input).then(output => {
         output.results.length.should.equal(1);
 
-        const movie = output.results[0];
-        should.equal(movie.id, 2);
-        should.equal(movie.title, 'title 2');
-        should.not.exist(movie.year);
+        const contact = output.results[0];
+        should.equal(contact.id, 3);
+        should.equal(contact.name, 'Eric');
+        should.equal(contact.luckyNumber, 777);
       });
     });
 
-    it('KEY_catch_hook => array & KEY_pre_hook', () => {
+    it('KEY_pre_hook', () => {
       const appDef = _.cloneDeep(appDefinition);
       appDef.triggers.contact_hook_scripting.operation.legacyProperties.hookType =
         'notification';
-      appDef.legacyScriptingSource = appDef.legacyScriptingSource.replace(
-        'contact_hook_scripting_catch_hook_returning_array',
-        'contact_hook_scripting_catch_hook'
-      );
       appDef.legacyScriptingSource = appDef.legacyScriptingSource.replace(
         'contact_hook_scripting_pre_hook_disabled',
         'contact_hook_scripting_pre_hook'
@@ -374,31 +407,93 @@ describe('Integration Test', () => {
         'triggers.contact_hook_scripting.operation.perform'
       );
       input.bundle.authData = { api_key: 'secret' };
-      input.bundle.cleanedRequest = [
-        { id: 3, title: 'Dont Care' },
-        { id: 1, title: 'Really Dont Care' }
-      ];
+      input.bundle.cleanedRequest = {
+        id: 3,
+        name: 'Dont Care',
+        resource_url: 'https://auth-json-server.zapier.ninja/users/3'
+      };
       return app(input).then(output => {
-        const movies = output.results;
-        should.equal(movies.length, 2);
+        output.results.length.should.equal(1);
 
-        should.equal(movies[0].id, 2);
-        should.equal(movies[0].title, 'title 2');
-        should.not.exist(movies[0].year);
-
-        should.equal(movies[0].id, 2);
-        should.equal(movies[0].title, 'title 2');
-        should.not.exist(movies[0].year);
+        const movie = output.results[0];
+        should.equal(movie.id, 3);
+        should.equal(movie.title, 'title 3');
       });
     });
 
-    it('KEY_catch_hook => object & KEY_post_hook => object', () => {
+    it('KEY_post_hook => object', () => {
       const appDef = _.cloneDeep(appDefinition);
       appDef.triggers.contact_hook_scripting.operation.legacyProperties.hookType =
         'notification';
       appDef.legacyScriptingSource = appDef.legacyScriptingSource.replace(
-        'contact_hook_scripting_catch_hook_returning_object',
-        'contact_hook_scripting_catch_hook'
+        'contact_hook_scripting_post_hook_returning_object',
+        'contact_hook_scripting_post_hook'
+      );
+      const appDefWithAuth = withAuth(appDef, apiKeyAuth);
+      const compiledApp = schemaTools.prepareApp(appDefWithAuth);
+      const app = createApp(appDefWithAuth);
+
+      const input = createTestInput(
+        compiledApp,
+        'triggers.contact_hook_scripting.operation.perform'
+      );
+      input.bundle.authData = { api_key: 'secret' };
+      input.bundle.cleanedRequest = {
+        id: 3,
+        name: 'Dont Care',
+        resource_url: 'https://auth-json-server.zapier.ninja/users/3'
+      };
+      return app(input).then(output => {
+        output.results.length.should.equal(1);
+
+        const contact = output.results[0];
+        should.equal(contact.id, 3);
+        should.equal(contact.name, 'Clementine Bauch');
+        should.equal(contact.year, 2018);
+      });
+    });
+
+    it('KEY_post_hook => array', () => {
+      const appDef = _.cloneDeep(appDefinition);
+      appDef.triggers.contact_hook_scripting.operation.legacyProperties.hookType =
+        'notification';
+      appDef.legacyScriptingSource = appDef.legacyScriptingSource.replace(
+        'contact_hook_scripting_post_hook_returning_array',
+        'contact_hook_scripting_post_hook'
+      );
+      const appDefWithAuth = withAuth(appDef, apiKeyAuth);
+      const compiledApp = schemaTools.prepareApp(appDefWithAuth);
+      const app = createApp(appDefWithAuth);
+
+      const input = createTestInput(
+        compiledApp,
+        'triggers.contact_hook_scripting.operation.perform'
+      );
+      input.bundle.authData = { api_key: 'secret' };
+      input.bundle.cleanedRequest = {
+        id: 3,
+        name: 'Dont Care',
+        resource_url: 'https://auth-json-server.zapier.ninja/users/3'
+      };
+      return app(input).then(output => {
+        const things = output.results;
+        should.equal(things.length, 2);
+        should.equal(things[0].id, 3);
+        should.equal(things[0].name, 'Clementine Bauch');
+        should.equal(things[0].year, 2017);
+        should.equal(things[1].id, 5555);
+        should.equal(things[1].name, 'The Thing');
+        should.equal(things[1].year, 2016);
+      });
+    });
+
+    it('KEY_pre_hook & KEY_post_hook => object', () => {
+      const appDef = _.cloneDeep(appDefinition);
+      appDef.triggers.contact_hook_scripting.operation.legacyProperties.hookType =
+        'notification';
+      appDef.legacyScriptingSource = appDef.legacyScriptingSource.replace(
+        'contact_hook_scripting_pre_hook_disabled',
+        'contact_hook_scripting_pre_hook'
       );
       appDef.legacyScriptingSource = appDef.legacyScriptingSource.replace(
         'contact_hook_scripting_post_hook_returning_object',
@@ -415,7 +510,8 @@ describe('Integration Test', () => {
       input.bundle.authData = { api_key: 'secret' };
       input.bundle.cleanedRequest = {
         id: 3,
-        title: 'Dont Care'
+        name: 'Dont Care',
+        resource_url: 'https://auth-json-server.zapier.ninja/users/3'
       };
       return app(input).then(output => {
         output.results.length.should.equal(1);
@@ -424,198 +520,6 @@ describe('Integration Test', () => {
         should.equal(movie.id, 3);
         should.equal(movie.title, 'title 3');
         should.equal(movie.year, 2018);
-      });
-    });
-
-    it('KEY_catch_hook => array & KEY_post_hook => array', () => {
-      const appDef = _.cloneDeep(appDefinition);
-      appDef.triggers.contact_hook_scripting.operation.legacyProperties.hookType =
-        'notification';
-      appDef.legacyScriptingSource = appDef.legacyScriptingSource.replace(
-        'contact_hook_scripting_catch_hook_returning_array',
-        'contact_hook_scripting_catch_hook'
-      );
-      appDef.legacyScriptingSource = appDef.legacyScriptingSource.replace(
-        'contact_hook_scripting_post_hook_returning_array',
-        'contact_hook_scripting_post_hook'
-      );
-      const appDefWithAuth = withAuth(appDef, apiKeyAuth);
-      const compiledApp = schemaTools.prepareApp(appDefWithAuth);
-      const app = createApp(appDefWithAuth);
-
-      const input = createTestInput(
-        compiledApp,
-        'triggers.contact_hook_scripting.operation.perform'
-      );
-      input.bundle.authData = { api_key: 'secret' };
-      input.bundle.cleanedRequest = [
-        { id: 3, title: 'Dont Care' },
-        { id: 1, title: 'Really Dont Care' }
-      ];
-      return app(input).then(output => {
-        const movies = output.results;
-        should.equal(movies.length, 2);
-
-        should.equal(movies[0].id, 3);
-        should.equal(movies[0].title, 'title 3');
-        should.equal(movies[0].year, 2017);
-        should.equal(movies[1].id, 1);
-        should.equal(movies[1].title, 'title 1');
-        should.equal(movies[1].year, 2017);
-      });
-    });
-
-    it('KEY_catch_hook => object & KEY_post_hook => array', () => {
-      const appDef = _.cloneDeep(appDefinition);
-      appDef.triggers.contact_hook_scripting.operation.legacyProperties.hookType =
-        'notification';
-      appDef.legacyScriptingSource = appDef.legacyScriptingSource.replace(
-        'contact_hook_scripting_catch_hook_returning_object',
-        'contact_hook_scripting_catch_hook'
-      );
-      appDef.legacyScriptingSource = appDef.legacyScriptingSource.replace(
-        'contact_hook_scripting_post_hook_returning_array',
-        'contact_hook_scripting_post_hook'
-      );
-      const appDefWithAuth = withAuth(appDef, apiKeyAuth);
-      const compiledApp = schemaTools.prepareApp(appDefWithAuth);
-      const app = createApp(appDefWithAuth);
-
-      const input = createTestInput(
-        compiledApp,
-        'triggers.contact_hook_scripting.operation.perform'
-      );
-      input.bundle.authData = { api_key: 'secret' };
-      input.bundle.cleanedRequest = {
-        id: 3,
-        title: 'Dont Care'
-      };
-      return app(input).then(output => {
-        output.results.length.should.equal(1);
-
-        const movie = output.results[0];
-        should.equal(movie.id, 3);
-        should.equal(movie.title, 'title 3');
-        should.equal(movie.year, 2017);
-      });
-    });
-
-    it('KEY_catch_hook => array & KEY_post_hook => object', () => {
-      const appDef = _.cloneDeep(appDefinition);
-      appDef.triggers.contact_hook_scripting.operation.legacyProperties.hookType =
-        'notification';
-      appDef.legacyScriptingSource = appDef.legacyScriptingSource.replace(
-        'contact_hook_scripting_catch_hook_returning_array',
-        'contact_hook_scripting_catch_hook'
-      );
-      appDef.legacyScriptingSource = appDef.legacyScriptingSource.replace(
-        'contact_hook_scripting_post_hook_returning_object',
-        'contact_hook_scripting_post_hook'
-      );
-      const appDefWithAuth = withAuth(appDef, apiKeyAuth);
-      const compiledApp = schemaTools.prepareApp(appDefWithAuth);
-      const app = createApp(appDefWithAuth);
-
-      const input = createTestInput(
-        compiledApp,
-        'triggers.contact_hook_scripting.operation.perform'
-      );
-      input.bundle.authData = { api_key: 'secret' };
-      input.bundle.cleanedRequest = [
-        { id: 3, title: 'Dont Care' },
-        { id: 1, title: 'Really Dont Care' }
-      ];
-      return app(input).then(output => {
-        const movies = output.results;
-        should.equal(movies.length, 2);
-
-        should.equal(movies[0].id, 3);
-        should.equal(movies[0].title, 'title 3');
-        should.equal(movies[0].year, 2018);
-        should.equal(movies[1].id, 1);
-        should.equal(movies[1].title, 'title 1');
-        should.equal(movies[1].year, 2018);
-      });
-    });
-
-    it('KEY_catch_hook => object & KEY_pre_hook & KEY_post_hook => object', () => {
-      const appDef = _.cloneDeep(appDefinition);
-      appDef.triggers.contact_hook_scripting.operation.legacyProperties.hookType =
-        'notification';
-      appDef.legacyScriptingSource = appDef.legacyScriptingSource.replace(
-        'contact_hook_scripting_catch_hook_returning_object',
-        'contact_hook_scripting_catch_hook'
-      );
-      appDef.legacyScriptingSource = appDef.legacyScriptingSource.replace(
-        'contact_hook_scripting_pre_hook_disabled',
-        'contact_hook_scripting_pre_hook'
-      );
-      appDef.legacyScriptingSource = appDef.legacyScriptingSource.replace(
-        'contact_hook_scripting_post_hook_returning_object',
-        'contact_hook_scripting_post_hook'
-      );
-      const appDefWithAuth = withAuth(appDef, apiKeyAuth);
-      const compiledApp = schemaTools.prepareApp(appDefWithAuth);
-      const app = createApp(appDefWithAuth);
-
-      const input = createTestInput(
-        compiledApp,
-        'triggers.contact_hook_scripting.operation.perform'
-      );
-      input.bundle.authData = { api_key: 'secret' };
-      input.bundle.cleanedRequest = {
-        id: 3,
-        title: 'Dont Care'
-      };
-      return app(input).then(output => {
-        output.results.length.should.equal(1);
-
-        const movie = output.results[0];
-        should.equal(movie.id, 2);
-        should.equal(movie.title, 'title 2');
-        should.equal(movie.year, 2018);
-      });
-    });
-
-    it('KEY_catch_hook => array & KEY_pre_hook & KEY_post_hook => array', () => {
-      const appDef = _.cloneDeep(appDefinition);
-      appDef.triggers.contact_hook_scripting.operation.legacyProperties.hookType =
-        'notification';
-      appDef.legacyScriptingSource = appDef.legacyScriptingSource.replace(
-        'contact_hook_scripting_catch_hook_returning_array',
-        'contact_hook_scripting_catch_hook'
-      );
-      appDef.legacyScriptingSource = appDef.legacyScriptingSource.replace(
-        'contact_hook_scripting_pre_hook_disabled',
-        'contact_hook_scripting_pre_hook'
-      );
-      appDef.legacyScriptingSource = appDef.legacyScriptingSource.replace(
-        'contact_hook_scripting_post_hook_returning_array',
-        'contact_hook_scripting_post_hook'
-      );
-      const appDefWithAuth = withAuth(appDef, apiKeyAuth);
-      const compiledApp = schemaTools.prepareApp(appDefWithAuth);
-      const app = createApp(appDefWithAuth);
-
-      const input = createTestInput(
-        compiledApp,
-        'triggers.contact_hook_scripting.operation.perform'
-      );
-      input.bundle.authData = { api_key: 'secret' };
-      input.bundle.cleanedRequest = [
-        { id: 3, title: 'Dont Care' },
-        { id: 1, title: 'Really Dont Care' }
-      ];
-      return app(input).then(output => {
-        const movies = output.results;
-        should.equal(movies.length, 2);
-
-        should.equal(movies[0].id, 2);
-        should.equal(movies[0].title, 'title 2');
-        should.equal(movies[0].year, 2017);
-        should.equal(movies[1].id, 2);
-        should.equal(movies[1].title, 'title 2');
-        should.equal(movies[1].year, 2017);
       });
     });
 
