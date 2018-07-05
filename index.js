@@ -205,16 +205,16 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
   ) => {
     options = _.extend(
       {
-        // Options to deal with the response or the result from the post method
-        // * checkResponseStatus: throws an error if response status is not 2xx
+        // Options to deal with the final result returned by this function.
+        // * checkResponseStatus: throws an error if response status is not 2xx.
         // * parseResponse:
         //     assumes response content is JSON and parse it. post method won't
         //     run if this is false.
         // * ensureArray: could be one of the following values:
         //   - false:
         //       returns whatever data parsed from response content or returned
-        //       by the post method
-        //   - 'wrap': returns [obj] if response is an object
+        //       by the post method.
+        //   - 'wrap': returns [result] if result is an object.
         //   - 'first':
         //       returns the first top-level array in the result if result
         //       is an object. This is the fallback behavior if ensureArray is
