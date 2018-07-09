@@ -638,7 +638,7 @@ describe('Integration Test', () => {
     });
   });
 
-  describe.only('create', () => {
+  describe('create', () => {
     it('scriptingless', () => {
       const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
       appDefWithAuth.creates.movie.operation.legacyProperties.url += 's';
