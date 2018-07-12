@@ -578,6 +578,23 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
     return runCustomFields(bundle, key, 'create.output', url);
   };
 
+  const runSearch = (bundle, key) => {
+    const legacyProps =
+      _.get(app, `searches.${key}.operation.legacyProperties`) || {};
+    const url = legacyProps.url;
+
+    bundle.request.url = url;
+
+    return runEventCombo(
+      bundle,
+      key,
+      'search.pre',
+      'search.post',
+      'search.search',
+      { ensureArray: 'first' }
+    );
+  };
+
   const runSearchInputFields = (bundle, key) => {
     const url = _.get(
       app,
@@ -637,13 +654,14 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
           return runCreateInputFields(bundle, key);
         case 'create.output':
           return runCreateOutputFields(bundle, key);
+        case 'search':
+          return runSearch(bundle, key);
         case 'search.input':
           return runSearchInputFields(bundle, key);
         case 'search.output':
           return runSearchOutputFields(bundle, key);
 
         // TODO: Add support for these:
-        // search
         // search.resource
       }
       throw new Error(`unrecognizable typeOf '${typeOf}'`);

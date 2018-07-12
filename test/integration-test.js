@@ -1084,6 +1084,28 @@ describe('Integration Test', () => {
   });
 
   describe('search', () => {
+    it.only('scriptingless perform', () => {
+      const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
+      const compiledApp = schemaTools.prepareApp(appDefWithAuth);
+      const app = createApp(appDefWithAuth);
+
+      const input = createTestInput(
+        compiledApp,
+        'searches.movie.operation.perform'
+      );
+      input.bundle.authData = { api_key: 'secret' };
+      input.bundle.inputData = {
+        query: 'title 3',
+      };
+      return app(input).then(output => {
+        output.results.length.should.equal(1);
+
+        const movie = output.results[0];
+        should.equal(movie.id, 3);
+        should.equal(movie.title, 'title 3');
+      });
+    });
+
     it('scriptingless input fields', () => {
       const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
       appDefWithAuth.searches.movie.operation.legacyProperties.inputFieldsUrl +=
@@ -1100,7 +1122,7 @@ describe('Integration Test', () => {
       return app(input).then(output => {
         const fields = output.results;
         should.equal(fields.length, 2);
-        should.equal(fields[0].key, 'title');
+        should.equal(fields[0].key, 'query');
         should.equal(fields[1].key, 'luckyNumber');
       });
     });
@@ -1123,7 +1145,7 @@ describe('Integration Test', () => {
       return app(input).then(output => {
         const fields = output.results;
         should.equal(fields.length, 2);
-        should.equal(fields[0].key, 'title');
+        should.equal(fields[0].key, 'query');
         should.equal(fields[1].key, 'luckyNumber');
       });
     });
@@ -1148,7 +1170,7 @@ describe('Integration Test', () => {
       return app(input).then(output => {
         const fields = output.results;
         should.equal(fields.length, 3);
-        should.equal(fields[0].key, 'title');
+        should.equal(fields[0].key, 'query');
         should.equal(fields[1].key, 'luckyNumber');
         should.equal(fields[2].key, 'year');
         should.equal(fields[2].type, 'integer');
@@ -1177,7 +1199,7 @@ describe('Integration Test', () => {
       return app(input).then(output => {
         const fields = output.results;
         should.equal(fields.length, 3);
-        should.equal(fields[0].key, 'title');
+        should.equal(fields[0].key, 'query');
         should.equal(fields[1].key, 'luckyNumber');
         should.equal(fields[2].key, 'year');
         should.equal(fields[2].type, 'integer');
@@ -1202,7 +1224,7 @@ describe('Integration Test', () => {
       return app(input).then(output => {
         const fields = output.results;
         should.equal(fields.length, 3);
-        should.equal(fields[0].key, 'title');
+        should.equal(fields[0].key, 'query');
         should.equal(fields[1].key, 'luckyNumber');
         should.equal(fields[2].key, 'year');
         should.equal(fields[2].type, 'integer');

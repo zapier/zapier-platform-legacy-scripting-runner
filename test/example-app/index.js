@@ -279,6 +279,24 @@ const legacyScriptingSource = `
        * Search
        */
 
+      // To be replaced with 'movie_pre_search' at runtime
+      movie_pre_search_disabled: function(bundle) {
+      },
+
+      // To be replaced with 'movie_post_search' at runtime
+      movie_post_search_disabled: function(bundle) {
+      },
+
+      movie_search_disabled: function(bundle) {
+        var response = z.request(bundle.request);
+        var results = z.JSON.parse(response.content);
+        results.push({
+          id: 999,
+          title: 'The Post'
+        });
+        return results;
+      },
+
       // To be replaced with 'movie_pre_custom_search_fields' at runtime
       movie_pre_custom_search_fields_disabled: function(bundle) {
         bundle.request.url += 's';
@@ -527,7 +545,7 @@ const MovieSearch = {
       source: "return z.legacyScripting.run(bundle, 'search', 'movie');"
     },
     inputFields: [
-      { key: 'title', label: 'Title', type: 'string' },
+      { key: 'query', label: 'Query', type: 'string' },
       {
         source: "return z.legacyScripting.run(bundle, 'search.input', 'movie');"
       }
@@ -542,8 +560,9 @@ const MovieSearch = {
       }
     ],
     legacyProperties: {
+      url: 'https://auth-json-server.zapier.ninja/movies?q={{bundle.inputdata.query}}',
+
       // The URLs miss an 's' at the end on purpose for scripting to fix it
-      url: 'https://auth-json-server.zapier.ninja/movie',
       inputFieldsUrl: 'https://auth-json-server.zapier.ninja/input-field',
       outputFieldsUrl: 'https://auth-json-server.zapier.ninja/output-field'
     }
