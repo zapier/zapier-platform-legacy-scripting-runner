@@ -2,6 +2,8 @@
 
 const _ = require('lodash');
 
+const cleaner = require('zapier-platform-core/src/tools/cleaner');
+
 const bundleConverter = require('./bundle');
 
 const FIELD_TYPE_CONVERT_MAP = {
@@ -584,6 +586,9 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
     const url = legacyProps.url;
 
     bundle.request.url = url;
+
+    const bank = cleaner.createBundleBank(undefined, { bundle: bundle });
+    bundle.request = cleaner.recurseReplaceBank(bundle.request, bank);
 
     return runEventCombo(
       bundle,

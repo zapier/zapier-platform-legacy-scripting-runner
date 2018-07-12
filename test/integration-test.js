@@ -1084,7 +1084,7 @@ describe('Integration Test', () => {
   });
 
   describe('search', () => {
-    it.only('scriptingless perform', () => {
+    it('scriptingless perform', () => {
       const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
       const compiledApp = schemaTools.prepareApp(appDefWithAuth);
       const app = createApp(appDefWithAuth);
@@ -1095,16 +1095,18 @@ describe('Integration Test', () => {
       );
       input.bundle.authData = { api_key: 'secret' };
       input.bundle.inputData = {
-        query: 'title 3',
+        query: 'title 10',
       };
       return app(input).then(output => {
         output.results.length.should.equal(1);
 
         const movie = output.results[0];
-        should.equal(movie.id, 3);
-        should.equal(movie.title, 'title 3');
+        should.equal(movie.id, 10);
+        should.equal(movie.title, 'title 10');
       });
     });
+
+    // TODO: search scripting methods
 
     it('scriptingless input fields', () => {
       const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);

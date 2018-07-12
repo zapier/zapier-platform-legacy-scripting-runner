@@ -560,7 +560,7 @@ const MovieSearch = {
       }
     ],
     legacyProperties: {
-      url: 'https://auth-json-server.zapier.ninja/movies?q={{bundle.inputdata.query}}',
+      url: 'https://auth-json-server.zapier.ninja/movies?q={{bundle.inputData.query}}',
 
       // The URLs miss an 's' at the end on purpose for scripting to fix it
       inputFieldsUrl: 'https://auth-json-server.zapier.ninja/input-field',
