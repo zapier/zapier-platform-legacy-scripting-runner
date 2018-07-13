@@ -281,19 +281,23 @@ const legacyScriptingSource = `
 
       // To be replaced with 'movie_pre_search' at runtime
       movie_pre_search_disabled: function(bundle) {
+        bundle.request.url = bundle.request.url.replace('movie?', 'movies?');
+        return bundle.request;
       },
 
       // To be replaced with 'movie_post_search' at runtime
       movie_post_search_disabled: function(bundle) {
+        var results = z.JSON.parse(bundle.response.content);
+        results[0].title += ' (movie_post_search was here)';
+        return results;
       },
 
+      // To be replaced with 'movie_search' at runtime
       movie_search_disabled: function(bundle) {
+        bundle.request.url = bundle.request.url.replace('movie?', 'movies?');
         var response = z.request(bundle.request);
         var results = z.JSON.parse(response.content);
-        results.push({
-          id: 999,
-          title: 'The Post'
-        });
+        results[0].title += ' (movie_search was here)';
         return results;
       },
 
@@ -560,9 +564,10 @@ const MovieSearch = {
       }
     ],
     legacyProperties: {
-      url: 'https://auth-json-server.zapier.ninja/movies?q={{bundle.inputData.query}}',
-
-      // The URLs miss an 's' at the end on purpose for scripting to fix it
+      // The URLs miss an 's' at the end of the resource names on purpose for
+      // scripting to fix it
+      url:
+        'https://auth-json-server.zapier.ninja/movie?q={{bundle.inputData.query}}',
       inputFieldsUrl: 'https://auth-json-server.zapier.ninja/input-field',
       outputFieldsUrl: 'https://auth-json-server.zapier.ninja/output-field'
     }

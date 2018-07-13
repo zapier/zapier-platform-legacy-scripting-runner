@@ -1086,6 +1086,9 @@ describe('Integration Test', () => {
   describe('search', () => {
     it('scriptingless perform', () => {
       const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
+      const legacyProps =
+        appDefWithAuth.searches.movie.operation.legacyProperties;
+      legacyProps.url = legacyProps.url.replace('movie?', 'movies?');
       const compiledApp = schemaTools.prepareApp(appDefWithAuth);
       const app = createApp(appDefWithAuth);
 
@@ -1095,7 +1098,7 @@ describe('Integration Test', () => {
       );
       input.bundle.authData = { api_key: 'secret' };
       input.bundle.inputData = {
-        query: 'title 10',
+        query: 'title 10'
       };
       return app(input).then(output => {
         output.results.length.should.equal(1);
@@ -1106,7 +1109,116 @@ describe('Integration Test', () => {
       });
     });
 
-    // TODO: search scripting methods
+    it('KEY_pre_search', () => {
+      const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
+      appDefWithAuth.legacyScriptingSource = appDefWithAuth.legacyScriptingSource.replace(
+        'movie_pre_search_disabled',
+        'movie_pre_search'
+      );
+      const compiledApp = schemaTools.prepareApp(appDefWithAuth);
+      const app = createApp(appDefWithAuth);
+
+      const input = createTestInput(
+        compiledApp,
+        'searches.movie.operation.perform'
+      );
+      input.bundle.authData = { api_key: 'secret' };
+      input.bundle.inputData = {
+        query: 'title 20'
+      };
+      return app(input).then(output => {
+        output.results.length.should.equal(1);
+
+        const movie = output.results[0];
+        should.equal(movie.id, 20);
+        should.equal(movie.title, 'title 20');
+      });
+    });
+
+    it('KEY_post_search', () => {
+      const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
+      const legacyProps =
+        appDefWithAuth.searches.movie.operation.legacyProperties;
+      legacyProps.url = legacyProps.url.replace('movie?', 'movies?');
+      appDefWithAuth.legacyScriptingSource = appDefWithAuth.legacyScriptingSource.replace(
+        'movie_post_search_disabled',
+        'movie_post_search'
+      );
+      const compiledApp = schemaTools.prepareApp(appDefWithAuth);
+      const app = createApp(appDefWithAuth);
+
+      const input = createTestInput(
+        compiledApp,
+        'searches.movie.operation.perform'
+      );
+      input.bundle.authData = { api_key: 'secret' };
+      input.bundle.inputData = {
+        query: 'title 20'
+      };
+      return app(input).then(output => {
+        output.results.length.should.equal(1);
+
+        const movie = output.results[0];
+        should.equal(movie.id, 20);
+        should.equal(movie.title, 'title 20 (movie_post_search was here)');
+      });
+    });
+
+    it('KEY_pre_search & KEY_post_search', () => {
+      const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
+      appDefWithAuth.legacyScriptingSource = appDefWithAuth.legacyScriptingSource.replace(
+        'movie_pre_search_disabled',
+        'movie_pre_search'
+      );
+      appDefWithAuth.legacyScriptingSource = appDefWithAuth.legacyScriptingSource.replace(
+        'movie_post_search_disabled',
+        'movie_post_search'
+      );
+      const compiledApp = schemaTools.prepareApp(appDefWithAuth);
+      const app = createApp(appDefWithAuth);
+
+      const input = createTestInput(
+        compiledApp,
+        'searches.movie.operation.perform'
+      );
+      input.bundle.authData = { api_key: 'secret' };
+      input.bundle.inputData = {
+        query: 'title 20'
+      };
+      return app(input).then(output => {
+        output.results.length.should.equal(1);
+
+        const movie = output.results[0];
+        should.equal(movie.id, 20);
+        should.equal(movie.title, 'title 20 (movie_post_search was here)');
+      });
+    });
+
+    it('KEY_search', () => {
+      const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
+      appDefWithAuth.legacyScriptingSource = appDefWithAuth.legacyScriptingSource.replace(
+        'movie_search_disabled',
+        'movie_search'
+      );
+      const compiledApp = schemaTools.prepareApp(appDefWithAuth);
+      const app = createApp(appDefWithAuth);
+
+      const input = createTestInput(
+        compiledApp,
+        'searches.movie.operation.perform'
+      );
+      input.bundle.authData = { api_key: 'secret' };
+      input.bundle.inputData = {
+        query: 'title 12'
+      };
+      return app(input).then(output => {
+        output.results.length.should.equal(1);
+
+        const movie = output.results[0];
+        should.equal(movie.id, 12);
+        should.equal(movie.title, 'title 12 (movie_search was here)');
+      });
+    });
 
     it('scriptingless input fields', () => {
       const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
