@@ -257,7 +257,8 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
         parseResponse: true,
         ensureArray: false,
 
-        resetRequestForFullMethod: false
+        resetRequestForFullMethod: false,
+        parseResponseForPostMethod: false
       },
       options
     );
@@ -313,9 +314,13 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
 
       const postMethod = postMethodName ? Zap[postMethodName] : null;
       if (postMethod) {
-        promise = promise.then(response =>
-          runEvent({ key, name: postEventName, response }, zobj, bundle)
-        );
+        promise = promise.then(response => {
+          const event = { key, name: postEventName, response };
+          if (options.parseResponseForPostMethod) {
+            event.results = zobj.JSON.parse(response.content);
+          }
+          return runEvent(event, zobj, bundle);
+        });
       } else {
         promise = promise.then(response => zobj.JSON.parse(response.content));
       }
@@ -590,9 +595,7 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
   };
 
   const runSearch = (bundle, key) => {
-    const legacyProps =
-      _.get(app, `searches.${key}.operation.legacyProperties`) || {};
-    const url = legacyProps.url;
+    const url = _.get(app, `searches.${key}.operation.legacyProperties.url`);
 
     bundle.request.url = url;
 
@@ -603,6 +606,23 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
       'search.post',
       'search.search',
       { ensureArray: 'first' }
+    );
+  };
+
+  const runSearchResource = (bundle, key) => {
+    const url = _.get(
+      app,
+      `searches.${key}.operation.legacyProperties.resourceUrl`
+    );
+    bundle.request.url = url;
+
+    return runEventCombo(
+      bundle,
+      key,
+      'search.resource.pre',
+      'search.resource.post',
+      'search.resource',
+      { parseResponseForPostMethod: true }
     );
   };
 
@@ -667,13 +687,12 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
           return runCreateOutputFields(bundle, key);
         case 'search':
           return runSearch(bundle, key);
+        case 'search.resource':
+          return runSearchResource(bundle, key);
         case 'search.input':
           return runSearchInputFields(bundle, key);
         case 'search.output':
           return runSearchOutputFields(bundle, key);
-
-        // TODO: Add support for these:
-        // search.resource
       }
       throw new Error(`unrecognizable typeOf '${typeOf}'`);
     });

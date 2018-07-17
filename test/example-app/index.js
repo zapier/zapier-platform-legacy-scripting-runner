@@ -1,3 +1,5 @@
+const { AUTH_JSON_SERVER_URL } = require('../auth-json-server');
+
 const legacyScriptingSource = `
     var Zap = {
       get_session_info: function(bundle) {
@@ -9,7 +11,7 @@ const legacyScriptingSource = `
               'Accept': 'application/json',
               'Authorization': 'Basic ' + encodedCredentials
           },
-          url: 'https://auth-json-server.zapier.ninja/me'
+          url: '${AUTH_JSON_SERVER_URL}/me'
         });
 
         if (response.status_code !== 200) {
@@ -50,7 +52,7 @@ const legacyScriptingSource = `
        */
 
       contact_full_poll: function(bundle) {
-        bundle.request.url = 'https://auth-json-server.zapier.ninja/users';
+        bundle.request.url = '${AUTH_JSON_SERVER_URL}/users';
         var response = z.request(bundle.request);
         var contacts = z.JSON.parse(response.content);
         contacts[0].name = 'Patched by KEY_poll!';
@@ -73,7 +75,7 @@ const legacyScriptingSource = `
       },
 
       contact_pre_pre_poll: function(bundle) {
-        bundle.request.url = 'https://auth-json-server.zapier.ninja/users';
+        bundle.request.url = '${AUTH_JSON_SERVER_URL}/users';
         bundle.request.params.id = 3;
         return bundle.request;
       },
@@ -85,7 +87,7 @@ const legacyScriptingSource = `
       },
 
       contact_pre_post_pre_poll: function(bundle) {
-        bundle.request.url = 'https://auth-json-server.zapier.ninja/users';
+        bundle.request.url = '${AUTH_JSON_SERVER_URL}/users';
         bundle.request.params.id = 4;
         return bundle.request;
       },
@@ -228,7 +230,7 @@ const legacyScriptingSource = `
       // To be replaced with 'movie_custom_action_fields' at runtime
       movie_custom_action_fields_disabled: function(bundle) {
         // bundle.request.url should be an empty string to start with
-        bundle.request.url += 'https://auth-json-server.zapier.ninja/input-fields';
+        bundle.request.url += '${AUTH_JSON_SERVER_URL}/input-fields';
         var response = z.request(bundle.request);
         var fields = z.JSON.parse(response.content);
         fields.push({
@@ -259,7 +261,7 @@ const legacyScriptingSource = `
       // To be replaced with 'movie_custom_action_result_fields' at runtime
       movie_custom_action_result_fields_disabled: function(bundle, callback) {
         // bundle.request.url should be an empty string to start with
-        bundle.request.url += 'https://auth-json-server.zapier.ninja/output-fields';
+        bundle.request.url += '${AUTH_JSON_SERVER_URL}/output-fields';
         z.request(bundle.request, function(err, response) {
           if (err) {
             callback(err, response);
@@ -301,6 +303,28 @@ const legacyScriptingSource = `
         return results;
       },
 
+      // To be replaced with 'movie_pre_read_resource' at runtime
+      movie_pre_read_resource_disabled: function(bundle) {
+        bundle.request.url = bundle.request.url.replace('/movie/', '/movies/');
+        return bundle.request;
+      },
+
+      // To be replaced with 'movie_post_read_resource' at runtime
+      movie_post_read_resource_disabled: function(bundle) {
+        var movie = z.JSON.parse(bundle.response.content);
+        movie.title += ' (movie_post_read_resource was here)';
+        movie.anotherId = bundle.read_fields.id;
+        return movie;
+      },
+
+      movie_read_resource_disabled: function(bundle) {
+        bundle.request.url = bundle.request.url.replace('/movie/', '/movies/');
+        var response = z.request(bundle.request);
+        var movie = z.JSON.parse(response.content);
+        movie.title += ' (movie_read_resource was here)';
+        return movie;
+      },
+
       // To be replaced with 'movie_pre_custom_search_fields' at runtime
       movie_pre_custom_search_fields_disabled: function(bundle) {
         bundle.request.url += 's';
@@ -321,7 +345,7 @@ const legacyScriptingSource = `
       // To be replaced with 'movie_custom_search_fields' at runtime
       movie_custom_search_fields_disabled: function(bundle) {
         // bundle.request.url should be an empty string to start with
-        bundle.request.url += 'https://auth-json-server.zapier.ninja/input-fields';
+        bundle.request.url += '${AUTH_JSON_SERVER_URL}/input-fields';
         var response = z.request(bundle.request);
         var fields = z.JSON.parse(response.content);
         fields.push({
@@ -352,7 +376,7 @@ const legacyScriptingSource = `
       // To be replaced with 'movie_custom_search_result_fields' at runtime
       movie_custom_search_result_fields_disabled: function(bundle, callback) {
         // bundle.request.url should be an empty string to start with
-        bundle.request.url += 'https://auth-json-server.zapier.ninja/output-fields';
+        bundle.request.url += '${AUTH_JSON_SERVER_URL}/output-fields';
         z.request(bundle.request, function(err, response) {
           if (err) {
             callback(err, response);
@@ -399,7 +423,7 @@ const ContactTrigger_full = {
     legacyProperties: {
       // Misses an 's' at the end on purpose for KEY_pre_custom_trigger_fields
       // to fix
-      outputFieldsUrl: 'https://auth-json-server.zapier.ninja/output-field'
+      outputFieldsUrl: `${AUTH_JSON_SERVER_URL}/output-field`
     }
   }
 };
@@ -425,7 +449,7 @@ const ContactTrigger_post = {
   },
   operation: {
     legacyProperties: {
-      url: 'https://auth-json-server.zapier.ninja/users'
+      url: `${AUTH_JSON_SERVER_URL}/users`
     },
     perform: {
       source: "return z.legacyScripting.run(bundle, 'trigger', 'contact_post');"
@@ -497,7 +521,7 @@ const TestTrigger = {
       source: "return z.legacyScripting.run(bundle, 'trigger', 'test');"
     },
     legacyProperties: {
-      url: 'https://auth-json-server.zapier.ninja/me'
+      url: `${AUTH_JSON_SERVER_URL}/me`
     }
   }
 };
@@ -530,9 +554,9 @@ const MovieCreate = {
     ],
     legacyProperties: {
       // The URLs miss an 's' at the end on purpose for scripting to fix it
-      url: 'https://auth-json-server.zapier.ninja/movie',
-      inputFieldsUrl: 'https://auth-json-server.zapier.ninja/input-field',
-      outputFieldsUrl: 'https://auth-json-server.zapier.ninja/output-field',
+      url: `${AUTH_JSON_SERVER_URL}/movie`,
+      inputFieldsUrl: `${AUTH_JSON_SERVER_URL}/input-field`,
+      outputFieldsUrl: `${AUTH_JSON_SERVER_URL}/output-field`,
       fieldsExcludedFromBody: ['title']
     }
   }
@@ -547,6 +571,10 @@ const MovieSearch = {
   operation: {
     perform: {
       source: "return z.legacyScripting.run(bundle, 'search', 'movie');"
+    },
+    performGet: {
+      source:
+        "return z.legacyScripting.run(bundle, 'search.resource', 'movie');"
     },
     inputFields: [
       { key: 'query', label: 'Query', type: 'string' },
@@ -566,10 +594,10 @@ const MovieSearch = {
     legacyProperties: {
       // The URLs miss an 's' at the end of the resource names on purpose for
       // scripting to fix it
-      url:
-        'https://auth-json-server.zapier.ninja/movie?q={{bundle.inputData.query}}',
-      inputFieldsUrl: 'https://auth-json-server.zapier.ninja/input-field',
-      outputFieldsUrl: 'https://auth-json-server.zapier.ninja/output-field'
+      url: `${AUTH_JSON_SERVER_URL}/movie?q={{bundle.inputData.query}}`,
+      resourceUrl: `${AUTH_JSON_SERVER_URL}/movie/{{bundle.inputData.id}}`,
+      inputFieldsUrl: `${AUTH_JSON_SERVER_URL}/input-field`,
+      outputFieldsUrl: `${AUTH_JSON_SERVER_URL}/output-field`
     }
   }
 };

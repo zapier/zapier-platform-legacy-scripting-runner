@@ -1,8 +1,7 @@
-'use strict';
-
 const _ = require('lodash');
 const should = require('should');
 
+const { AUTH_JSON_SERVER_URL } = require('./auth-json-server');
 const apiKeyAuth = require('./example-app/api-key-auth');
 const appDefinition = require('./example-app');
 const oauth2Config = require('./example-app/oauth2');
@@ -483,7 +482,7 @@ describe('Integration Test', () => {
       input.bundle.cleanedRequest = {
         id: 3,
         name: 'Dont Care',
-        resource_url: 'https://auth-json-server.zapier.ninja/users/3'
+        resource_url: `${AUTH_JSON_SERVER_URL}/users/3`
       };
       return app(input).then(output => {
         output.results.length.should.equal(1);
@@ -514,7 +513,7 @@ describe('Integration Test', () => {
       input.bundle.cleanedRequest = {
         id: 3,
         name: 'Dont Care',
-        resource_url: 'https://auth-json-server.zapier.ninja/users/3'
+        resource_url: `${AUTH_JSON_SERVER_URL}/users/3`
       };
       return app(input).then(output => {
         output.results.length.should.equal(1);
@@ -546,7 +545,7 @@ describe('Integration Test', () => {
       input.bundle.cleanedRequest = {
         id: 3,
         name: 'Dont Care',
-        resource_url: 'https://auth-json-server.zapier.ninja/users/3'
+        resource_url: `${AUTH_JSON_SERVER_URL}/users/3`
       };
       return app(input).then(output => {
         const things = output.results;
@@ -584,7 +583,7 @@ describe('Integration Test', () => {
       input.bundle.cleanedRequest = {
         id: 3,
         name: 'Dont Care',
-        resource_url: 'https://auth-json-server.zapier.ninja/users/3'
+        resource_url: `${AUTH_JSON_SERVER_URL}/users/3`
       };
       return app(input).then(output => {
         output.results.length.should.equal(1);
@@ -1282,6 +1281,143 @@ describe('Integration Test', () => {
         const movie = output.results[0];
         should.equal(movie.id, 12);
         should.equal(movie.title, 'title 12 (movie_search was here)');
+      });
+    });
+
+    it('scriptingless resource', () => {
+      const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
+      const legacyProps =
+        appDefWithAuth.searches.movie.operation.legacyProperties;
+      legacyProps.resourceUrl = legacyProps.resourceUrl.replace(
+        '/movie/',
+        '/movies/'
+      );
+
+      const compiledApp = schemaTools.prepareApp(appDefWithAuth);
+      const app = createApp(appDefWithAuth);
+
+      const input = createTestInput(
+        compiledApp,
+        'searches.movie.operation.performGet'
+      );
+      input.bundle.authData = { api_key: 'secret' };
+      input.bundle.inputData = {
+        id: 5
+      };
+      return app(input).then(output => {
+        const movie = output.results;
+        should.equal(movie.id, 5);
+        should.equal(movie.title, 'title 5');
+      });
+    });
+
+    it('KEY_pre_read_resource', () => {
+      const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
+      appDefWithAuth.legacyScriptingSource = appDefWithAuth.legacyScriptingSource.replace(
+        'movie_pre_read_resource_disabled',
+        'movie_pre_read_resource'
+      );
+
+      const compiledApp = schemaTools.prepareApp(appDefWithAuth);
+      const app = createApp(appDefWithAuth);
+
+      const input = createTestInput(
+        compiledApp,
+        'searches.movie.operation.performGet'
+      );
+      input.bundle.authData = { api_key: 'secret' };
+      input.bundle.inputData = { id: 5 };
+      return app(input).then(output => {
+        const movie = output.results;
+        should.equal(movie.id, 5);
+        should.equal(movie.title, 'title 5');
+      });
+    });
+
+    it('KEY_post_read_resource', () => {
+      const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
+      const legacyProps =
+        appDefWithAuth.searches.movie.operation.legacyProperties;
+      legacyProps.resourceUrl = legacyProps.resourceUrl.replace(
+        '/movie/',
+        '/movies/'
+      );
+      appDefWithAuth.legacyScriptingSource = appDefWithAuth.legacyScriptingSource.replace(
+        'movie_post_read_resource_disabled',
+        'movie_post_read_resource'
+      );
+
+      const compiledApp = schemaTools.prepareApp(appDefWithAuth);
+      const app = createApp(appDefWithAuth);
+
+      const input = createTestInput(
+        compiledApp,
+        'searches.movie.operation.performGet'
+      );
+      input.bundle.authData = { api_key: 'secret' };
+      input.bundle.inputData = { id: 6 };
+      return app(input).then(output => {
+        const movie = output.results;
+        should.equal(movie.id, 6);
+        should.equal(
+          movie.title,
+          'title 6 (movie_post_read_resource was here)'
+        );
+        should.equal(movie.anotherId, 6);
+      });
+    });
+
+    it('KEY_pre_read_resource & KEY_post_read_resource', () => {
+      const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
+      appDefWithAuth.legacyScriptingSource = appDefWithAuth.legacyScriptingSource.replace(
+        'movie_pre_read_resource_disabled',
+        'movie_pre_read_resource'
+      );
+      appDefWithAuth.legacyScriptingSource = appDefWithAuth.legacyScriptingSource.replace(
+        'movie_post_read_resource_disabled',
+        'movie_post_read_resource'
+      );
+
+      const compiledApp = schemaTools.prepareApp(appDefWithAuth);
+      const app = createApp(appDefWithAuth);
+
+      const input = createTestInput(
+        compiledApp,
+        'searches.movie.operation.performGet'
+      );
+      input.bundle.authData = { api_key: 'secret' };
+      input.bundle.inputData = { id: 7 };
+      return app(input).then(output => {
+        const movie = output.results;
+        should.equal(movie.id, 7);
+        should.equal(
+          movie.title,
+          'title 7 (movie_post_read_resource was here)'
+        );
+        should.equal(movie.anotherId, 7);
+      });
+    });
+
+    it('KEY_read_resource', () => {
+      const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
+      appDefWithAuth.legacyScriptingSource = appDefWithAuth.legacyScriptingSource.replace(
+        'movie_read_resource_disabled',
+        'movie_read_resource'
+      );
+
+      const compiledApp = schemaTools.prepareApp(appDefWithAuth);
+      const app = createApp(appDefWithAuth);
+
+      const input = createTestInput(
+        compiledApp,
+        'searches.movie.operation.performGet'
+      );
+      input.bundle.authData = { api_key: 'secret' };
+      input.bundle.inputData = { id: 8 };
+      return app(input).then(output => {
+        const movie = output.results;
+        should.equal(movie.id, 8);
+        should.equal(movie.title, 'title 8 (movie_read_resource was here)');
       });
     });
 
