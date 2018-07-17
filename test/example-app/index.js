@@ -305,7 +305,9 @@ const legacyScriptingSource = `
 
       // To be replaced with 'movie_pre_read_resource' at runtime
       movie_pre_read_resource_disabled: function(bundle) {
-        bundle.request.url = bundle.request.url.replace('/movie/', '/movies/');
+        // Replace '/movie/123' with '/movies/123'
+        bundle.request.url =
+          bundle.request.url.replace(/\\/movie\\/\\d+/, '/movies/' + bundle.read_fields.id);
         return bundle.request;
       },
 

@@ -257,8 +257,7 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
         parseResponse: true,
         ensureArray: false,
 
-        resetRequestForFullMethod: false,
-        parseResponseForPostMethod: false
+        resetRequestForFullMethod: false
       },
       options
     );
@@ -314,13 +313,9 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
 
       const postMethod = postMethodName ? Zap[postMethodName] : null;
       if (postMethod) {
-        promise = promise.then(response => {
-          const event = { key, name: postEventName, response };
-          if (options.parseResponseForPostMethod) {
-            event.results = zobj.JSON.parse(response.content);
-          }
-          return runEvent(event, zobj, bundle);
-        });
+        promise = promise.then(response =>
+          runEvent({ key, name: postEventName, response }, zobj, bundle)
+        );
       } else {
         promise = promise.then(response => zobj.JSON.parse(response.content));
       }
