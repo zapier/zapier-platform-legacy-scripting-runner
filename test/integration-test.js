@@ -663,6 +663,36 @@ describe('Integration Test', () => {
       });
     });
 
+    it('scriptingless perform, curlies in URL', () => {
+      const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
+      const legacyProps =
+        appDefWithAuth.creates.movie.operation.legacyProperties;
+      legacyProps.url = legacyProps.url.replace(
+        '/movie',
+        '/{{bundle.inputData.resource_name}}'
+      );
+
+      const compiledApp = schemaTools.prepareApp(appDefWithAuth);
+      const app = createApp(appDefWithAuth);
+
+      const input = createTestInput(
+        compiledApp,
+        'creates.movie.operation.perform'
+      );
+      input.bundle.authData = { api_key: 'secret' };
+      input.bundle.inputData = {
+        title: 'The Dark Knight',
+        genre: 'Drama',
+        resource_name: 'movies'
+      };
+      return app(input).then(output => {
+        const movie = output.results;
+        should.exist(movie.id);
+        should.not.exist(movie.title);
+        should.equal(movie.genre, 'Drama');
+      });
+    });
+
     it('KEY_pre_write', () => {
       const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
       appDefWithAuth.legacyScriptingSource = appDefWithAuth.legacyScriptingSource.replace(
@@ -803,6 +833,41 @@ describe('Integration Test', () => {
         should.exist(movie.id);
         should.equal(movie.title, 'Arrival');
         should.equal(movie.genre, 'Sci-fi');
+        should.equal(movie.year, 2016);
+      });
+    });
+
+    it('sync KEY_write, curlies in URL', () => {
+      const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
+      appDefWithAuth.legacyScriptingSource = appDefWithAuth.legacyScriptingSource.replace(
+        'movie_write_sync',
+        'movie_write'
+      );
+      const legacyProps =
+        appDefWithAuth.creates.movie.operation.legacyProperties;
+      legacyProps.url = legacyProps.url.replace(
+        '/movie',
+        '/{{bundle.inputData.resource_name}}'
+      );
+
+      const compiledApp = schemaTools.prepareApp(appDefWithAuth);
+      const app = createApp(appDefWithAuth);
+
+      const input = createTestInput(
+        compiledApp,
+        'creates.movie.operation.perform'
+      );
+      input.bundle.authData = { api_key: 'secret' };
+      input.bundle.inputData = {
+        title: 'La La Land',
+        genre: 'Musical',
+        resource_name: 'movie'
+      };
+      return app(input).then(output => {
+        const movie = output.results;
+        should.exist(movie.id);
+        should.equal(movie.title, 'La La Land');
+        should.equal(movie.genre, 'Musical');
         should.equal(movie.year, 2016);
       });
     });

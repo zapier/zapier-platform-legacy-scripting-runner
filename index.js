@@ -57,6 +57,11 @@ const parseFinalResult = (result, event) => {
   return result;
 };
 
+const replaceCurliesInRequest = (request, bundle) => {
+  const bank = cleaner.createBundleBank(undefined, { bundle: bundle });
+  return cleaner.recurseReplaceBank(request, bank);
+};
+
 const compileLegacyScriptingSource = source => {
   const { DOMParser, XMLSerializer } = require('xmldom');
   const {
@@ -256,6 +261,10 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
       },
       options
     );
+
+    if (bundle.request) {
+      bundle.request = replaceCurliesInRequest(bundle.request, bundle);
+    }
 
     let promise;
 
@@ -586,9 +595,6 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
     const url = legacyProps.url;
 
     bundle.request.url = url;
-
-    const bank = cleaner.createBundleBank(undefined, { bundle: bundle });
-    bundle.request = cleaner.recurseReplaceBank(bundle.request, bank);
 
     return runEventCombo(
       bundle,
