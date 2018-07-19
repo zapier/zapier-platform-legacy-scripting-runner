@@ -423,8 +423,9 @@ const ContactTrigger_full = {
       }
     ],
     legacyProperties: {
-      // Misses an 's' at the end on purpose for KEY_pre_custom_trigger_fields
-      // to fix
+      // The URL misses an 's' at the end of the resource names. That is,
+      // 'output-field' where it should be 'output-fields'. Done purposely for
+      // scripting to fix it.
       outputFieldsUrl: `${AUTH_JSON_SERVER_URL}/output-field`
     }
   }
@@ -555,7 +556,9 @@ const MovieCreate = {
       }
     ],
     legacyProperties: {
-      // The URLs miss an 's' at the end on purpose for scripting to fix it
+      // These URLs miss an 's' at the end of the resource names. That is,
+      // 'movie' where it should be 'movies' and 'input-field' where it should
+      // be 'input-fields'. Done purposely for scripting to fix it.
       url: `${AUTH_JSON_SERVER_URL}/movie`,
       inputFieldsUrl: `${AUTH_JSON_SERVER_URL}/input-field`,
       outputFieldsUrl: `${AUTH_JSON_SERVER_URL}/output-field`,
@@ -594,8 +597,9 @@ const MovieSearch = {
       }
     ],
     legacyProperties: {
-      // The URLs miss an 's' at the end of the resource names on purpose for
-      // scripting to fix it
+      // These URLs miss an 's' at the end of the resource names. That is,
+      // 'movie' where it should be 'movies' and 'input-field' where it should
+      // be 'input-fields'. Done purposely for scripting to fix it.
       url: `${AUTH_JSON_SERVER_URL}/movie?q={{bundle.inputData.query}}`,
       resourceUrl: `${AUTH_JSON_SERVER_URL}/movie/{{bundle.inputData.id}}`,
       inputFieldsUrl: `${AUTH_JSON_SERVER_URL}/input-field`,
