@@ -1,6 +1,8 @@
 'use strict';
 
 const _ = require('lodash');
+const FormData = require('form-data');
+const requestClient = require('request');
 
 const cleaner = require('zapier-platform-core/src/tools/cleaner');
 
@@ -553,12 +555,34 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
     const url = legacyProps.url;
     const fieldsExcludedFromBody = legacyProps.fieldsExcludedFromBody || [];
 
-    const body = {};
-    _.each(bundle.inputData, (v, k) => {
-      if (fieldsExcludedFromBody.indexOf(k) === -1) {
-        body[k] = v;
-      }
-    });
+    const inputFields =
+      _.get(app, `creates.${key}.operation.inputFields`) || [];
+
+    // This doesn't include custom 'file' fields as such info isn't available
+    // here in the bundle.
+    // TODO: Find a way to fix?
+    const fileFieldKeys = inputFields
+      .filter(field => field.type === 'file')
+      .map(field => field.key);
+
+    let body;
+
+    if (fileFieldKeys.length > 0) {
+      // Send with multipart/form-data if there's a file field
+      body = new FormData();
+      _.each(bundle.inputData, (v, k) => {
+        const value = fileFieldKeys.indexOf(k) >= 0 ? requestClient(v) : v;
+        body.append(k, value);
+      });
+    } else {
+      // Send in JSON if there're no file fields
+      body = {};
+      _.each(bundle.inputData, (v, k) => {
+        if (fieldsExcludedFromBody.indexOf(k) === -1) {
+          body[k] = v;
+        }
+      });
+    }
 
     bundle.request.method = 'POST';
     bundle.request.url = url;

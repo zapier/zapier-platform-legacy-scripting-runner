@@ -567,6 +567,27 @@ const MovieCreate = {
   }
 };
 
+const FileUpload = {
+  key: 'file',
+  noun: 'File',
+  display: {
+    label: 'Upload a File'
+  },
+  operation: {
+    perform: {
+      source: "return z.legacyScripting.run(bundle, 'create', 'file');"
+    },
+    inputFields: [
+      { key: 'filename', label: 'Filename', type: 'string' },
+      { key: 'file', label: 'File', type: 'file' }
+    ],
+    outputFields: [{ key: 'id', label: 'ID', type: 'integer' }],
+    legacyProperties: {
+      url: `${AUTH_JSON_SERVER_URL}/upload`
+    }
+  }
+};
+
 const MovieSearch = {
   key: 'movie',
   noun: 'Movie',
@@ -620,7 +641,8 @@ const App = {
     [TestTrigger.key]: TestTrigger
   },
   creates: {
-    [MovieCreate.key]: MovieCreate
+    [MovieCreate.key]: MovieCreate,
+    [FileUpload.key]: FileUpload
   },
   searches: {
     [MovieSearch.key]: MovieSearch

@@ -692,6 +692,28 @@ describe('Integration Test', () => {
       });
     });
 
+    it('scriptingless file', () => {
+      const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
+      const compiledApp = schemaTools.prepareApp(appDefWithAuth);
+      const app = createApp(appDefWithAuth);
+
+      const input = createTestInput(
+        compiledApp,
+        'creates.file.operation.perform'
+      );
+      input.bundle.authData = { api_key: 'secret' };
+      input.bundle.inputData = {
+        filename: 'this is a pig.png',
+        // In reality, file will always be a "hydrate URL" that looks something
+        // like https://zapier.com/engine/hydrate/1/abcd/
+        file: 'https://zapier-httpbin.herokuapp.com/image/png'
+      };
+      return app(input).then(output => {
+        should.equal(output.results.filename, 'this is a pig.png');
+        should.equal(output.results.hash, '379f5137831350c900e757b39e525b9db1426d53');
+      });
+    });
+
     it('KEY_pre_write', () => {
       const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
       appDefWithAuth.legacyScriptingSource = appDefWithAuth.legacyScriptingSource.replace(
