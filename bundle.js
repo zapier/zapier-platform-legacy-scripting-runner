@@ -126,12 +126,40 @@ const addRequest = (event, bundle, convertedBundle) => {
   const params = _.get(bundle, 'request.params', {});
   _.extend(convertedBundle.request.params, params);
 
-  let body = _.get(bundle, 'request.body');
+  const body = _.get(bundle, 'request.body');
   if (body) {
-    if (typeof body !== 'string') {
-      body = JSON.stringify(body);
+    let data = body,
+      files;
+
+    if (typeof data !== 'string') {
+      if (bundle._fileFieldKeys) {
+        // Exclude file fields from request.data
+        data = Object.keys(body)
+          .filter(k => bundle._fileFieldKeys.indexOf(k) === -1)
+          .reduce((result, k) => {
+            result[k] = body[k];
+            return result;
+          }, {});
+
+        files = Object.keys(body)
+          .filter(k => bundle._fileFieldKeys.indexOf(k) >= 0)
+          .reduce((result, k) => {
+            // TODO: Any way we can tell filename and mimetype from a hydrate URL?
+            const filename = 'filename';
+            const mimetype = 'application/octet-stream';
+            result[k] = [filename, body[k], mimetype];
+            return result;
+          }, {});
+      }
+
+      data = JSON.stringify(data);
     }
-    convertedBundle.request.data = body;
+
+    convertedBundle.request.data = data;
+    if (!_.isEmpty(files)) {
+      convertedBundle.request.files = files;
+      delete convertedBundle.request.headers['Content-Type'];
+    }
   }
 };
 

@@ -22,13 +22,43 @@ const FIELD_TYPE_CONVERT_MAP = {
   unicode: 'string'
 };
 
+const isUrl = s => s.startsWith('http://') || s.startsWith('https://');
+
 const parseFinalResult = (result, event) => {
   // Old request was .data (string), new is .body (object), which matters for _pre
   if (event.name.endsWith('.pre')) {
-    try {
-      result.body = JSON.parse(result.data || '{}');
-    } catch (e) {
-      result.body = result.data;
+    if (result.files) {
+      const formData = new FormData();
+      formData.append('data', result.data || '{}');
+
+      _.each(result.files, (v, k) => {
+        if (Array.isArray(v) && v.length === 3) {
+          let value = v[1];
+          if (isUrl(value)) {
+            value = requestClient(value);
+          }
+          formData.append(k, value, {
+            filename: v[0],
+            contentType: v[2]
+          });
+        } else if (typeof v === 'string') {
+          if (isUrl(v)) {
+            v = requestClient(v);
+          }
+          formData.append(k, v, {
+            filename: 'filename.txt',
+            contentType: 'text/plain'
+          });
+        }
+      });
+
+      result.body = formData;
+    } else {
+      try {
+        result.body = JSON.parse(result.data || '{}');
+      } catch (e) {
+        result.body = result.data;
+      }
     }
   }
 
@@ -300,7 +330,29 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
         promise = Promise.resolve(bundle.request);
       }
 
-      promise = promise.then(request => zobj.request(request));
+      promise = promise.then(request => {
+        const isBodyStream = typeof _.get(request, 'body.pipe') === 'function';
+
+        if (bundle._fileFieldKeys && !isBodyStream) {
+          const formData = new FormData();
+          const data = {};
+
+          _.each(request.body, (v, k) => {
+            if (bundle._fileFieldKeys.indexOf(k) === -1) {
+              data[k] = v;
+            } else if (typeof v === 'string') {
+              if (isUrl(v)) {
+                v = requestClient(v);
+              }
+              formData.append(k, v);
+            }
+          });
+
+          formData.append('data', JSON.stringify(data));
+          request.body = formData;
+        }
+        return zobj.request(request);
+      });
 
       if (options.checkResponseStatus) {
         promise = promise.then(response => {
@@ -565,32 +617,17 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
       .filter(field => field.type === 'file')
       .map(field => field.key);
 
-    let body;
-
     if (fileFieldKeys.length > 0) {
-      // Send with multipart/form-data if there's a file field
-      // https://zapier.com/developer/documentation/v2/files/#actions-via-multipart
-      const data = {};
-
-      body = new FormData();
-      _.each(bundle.inputData, (v, k) => {
-        if (fileFieldKeys.indexOf(k) === -1) {
-          data[k] = v;
-        } else {
-          body.append(k, requestClient(v));
-        }
-      });
-
-      body.append('data', JSON.stringify(data));
-    } else {
-      // Plain old JSON if there're no file fields
-      body = {};
-      _.each(bundle.inputData, (v, k) => {
-        if (fieldsExcludedFromBody.indexOf(k) === -1) {
-          body[k] = v;
-        }
-      });
+      // Add to bundle so that bundleConverter knows which fields are files
+      bundle._fileFieldKeys = fileFieldKeys;
     }
+
+    const body = {};
+    _.each(bundle.inputData, (v, k) => {
+      if (fieldsExcludedFromBody.indexOf(k) === -1) {
+        body[k] = v;
+      }
+    });
 
     bundle.request.method = 'POST';
     bundle.request.url = url;

@@ -277,6 +277,34 @@ const legacyScriptingSource = `
         });
       },
 
+      // To be replaced with 'file_pre_write' at runtime
+      file_pre_write_tweak_content: function(bundle) {
+        const fileUrl = bundle.request.files.file[1];
+        bundle.request.files.file[1] = fileUrl.replace('/png', '/jpeg');
+        return bundle.request;
+      },
+
+      // To be replaced with 'file_pre_write' at runtime
+      file_pre_write_replace_hydrate_url: function(bundle) {
+        bundle.request.files.file[0] = 'wolf.jpg';
+        bundle.request.files.file[1] = bundle.request.files.file[1].replace('/png', '/jpeg');
+        bundle.request.files.file[2] = 'image/jpeg';
+        return bundle.request;
+      },
+
+      file_pre_write_replace_with_string_content: function(bundle) {
+        bundle.request.files.file[0] = 'file_pre_write_was_here.txt';
+        bundle.request.files.file[1] = 'file_pre_write was here';
+        bundle.request.files.file[2] = 'text/plain';
+        return bundle.request;
+      },
+
+      // To be replaced with 'file_pre_write' at runtime
+      file_pre_write_fully_replaced: function(bundle) {
+        bundle.request.files.file = 'fully replaced by file_pre_write';
+        return bundle.request;
+      },
+
       /*
        * Search
        */
