@@ -692,7 +692,7 @@ describe('Integration Test', () => {
       });
     });
 
-    it('scriptingless file', () => {
+    it('scriptingless file upload', () => {
       const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
       const compiledApp = schemaTools.prepareApp(appDefWithAuth);
       const app = createApp(appDefWithAuth);
@@ -705,12 +705,15 @@ describe('Integration Test', () => {
       input.bundle.inputData = {
         filename: 'this is a pig.png',
         // In reality, file will always be a "hydrate URL" that looks something
-        // like https://zapier.com/engine/hydrate/1/abcd/
+        // like https://zapier.com/engine/hydrate/1/abcd/, but in fact any
+        // valid URL would work.
         file: 'https://zapier-httpbin.herokuapp.com/image/png'
       };
       return app(input).then(output => {
-        should.equal(output.results.filename, 'this is a pig.png');
-        should.equal(output.results.hash, '379f5137831350c900e757b39e525b9db1426d53');
+        const file = output.results.file;
+        const data = JSON.parse(output.results.data);
+        should.equal(file.sha1, '379f5137831350c900e757b39e525b9db1426d53');
+        should.equal(data.filename, 'this is a pig.png');
       });
     });
 

@@ -569,13 +569,21 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
 
     if (fileFieldKeys.length > 0) {
       // Send with multipart/form-data if there's a file field
+      // https://zapier.com/developer/documentation/v2/files/#actions-via-multipart
+      const data = {};
+
       body = new FormData();
       _.each(bundle.inputData, (v, k) => {
-        const value = fileFieldKeys.indexOf(k) >= 0 ? requestClient(v) : v;
-        body.append(k, value);
+        if (fileFieldKeys.indexOf(k) === -1) {
+          data[k] = v;
+        } else {
+          body.append(k, requestClient(v));
+        }
       });
+
+      body.append('data', JSON.stringify(data));
     } else {
-      // Send in JSON if there're no file fields
+      // Plain old JSON if there're no file fields
       body = {};
       _.each(bundle.inputData, (v, k) => {
         if (fieldsExcludedFromBody.indexOf(k) === -1) {
