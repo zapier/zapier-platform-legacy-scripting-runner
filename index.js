@@ -35,6 +35,9 @@ const parseFinalResult = (result, event) => {
         if (Array.isArray(v) && v.length === 3) {
           let value = v[1];
           if (isUrl(value)) {
+            // TODO: WB doesn't stream if v[1] is changed by KEY_pre_write, it
+            // interprets v[1] as a string content instead. But since we can't
+            // tell if v[1] is changed here, let's stream any URL for now.
             value = requestClient(value);
           }
           formData.append(k, value, {
@@ -42,13 +45,17 @@ const parseFinalResult = (result, event) => {
             contentType: v[2]
           });
         } else if (typeof v === 'string') {
+          let options = {};
           if (isUrl(v)) {
             v = requestClient(v);
+          } else {
+            options = {
+              // TODO: Generate filename from string content
+              filename: 'filename.txt',
+              contentType: 'text/plain'
+            };
           }
-          formData.append(k, v, {
-            filename: 'filename.txt',
-            contentType: 'text/plain'
-          });
+          formData.append(k, v, options);
         }
       });
 
