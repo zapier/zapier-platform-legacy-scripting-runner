@@ -1173,6 +1173,36 @@ describe('Integration Test', () => {
       });
     });
 
+    it('file upload, KEY_pre_write tweak file meta', () => {
+      const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
+      appDefWithAuth.legacyScriptingSource = appDefWithAuth.legacyScriptingSource.replace(
+        'file_pre_write_tweak_meta',
+        'file_pre_write'
+      );
+      const compiledApp = schemaTools.prepareApp(appDefWithAuth);
+      const app = createApp(appDefWithAuth);
+
+      const input = createTestInput(
+        compiledApp,
+        'creates.file.operation.perform'
+      );
+      input.bundle.authData = { api_key: 'secret' };
+      input.bundle.inputData = {
+        filename: 'this is a pig.png',
+        file: 'https://zapier-httpbin.herokuapp.com/image/png'
+      };
+      return app(input).then(output => {
+        const file = output.results.file;
+        should.equal(file.sha1, '379f5137831350c900e757b39e525b9db1426d53');
+        should.equal(file.mimetype, 'image/pig');
+        should.equal(file.originalname, 'pig.png');
+
+        const data = JSON.parse(output.results.data);
+        should.equal(data.filename, 'this is a pig.png');
+      });
+    });
+
+
     it('file upload, KEY_pre_write replaces hydrate url', () => {
       const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
       appDefWithAuth.legacyScriptingSource = appDefWithAuth.legacyScriptingSource.replace(
@@ -1193,7 +1223,7 @@ describe('Integration Test', () => {
       };
       return app(input).then(output => {
         const file = output.results.file;
-        should.equal(file.sha1, 'eb1db8fa7b8277f2de5d7b40d6cdbc708aac4e52');
+        should.equal(file.sha1, '44da0f5c0e4c27f945e97fccf59b69e06b767828');
         should.equal(file.mimetype, 'image/jpeg');
         should.equal(file.originalname, 'wolf.jpg');
 
@@ -1231,10 +1261,39 @@ describe('Integration Test', () => {
       });
     });
 
-    it('file upload, KEY_pre_write fully replaces', () => {
+    it('file upload, KEY_pre_write fully replaces URL', () => {
       const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
       appDefWithAuth.legacyScriptingSource = appDefWithAuth.legacyScriptingSource.replace(
-        'file_pre_write_fully_replaced',
+        'file_pre_write_fully_replaced_url',
+        'file_pre_write'
+      );
+      const compiledApp = schemaTools.prepareApp(appDefWithAuth);
+      const app = createApp(appDefWithAuth);
+
+      const input = createTestInput(
+        compiledApp,
+        'creates.file.operation.perform'
+      );
+      input.bundle.authData = { api_key: 'secret' };
+      input.bundle.inputData = {
+        filename: 'dont.care',
+        file: 'https://zapier-httpbin.herokuapp.com/image/png'
+      };
+      return app(input).then(output => {
+        const file = output.results.file;
+        should.equal(file.sha1, 'eb1db8fa7b8277f2de5d7b40d6cdbc708aac4e52');
+        should.equal(file.mimetype, 'application/octet-stream');
+        should.equal(file.originalname, 'jpeg');
+
+        const data = JSON.parse(output.results.data);
+        should.equal(data.filename, 'dont.care');
+      });
+    });
+
+    it('file upload, KEY_pre_write fully replaces content', () => {
+      const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
+      appDefWithAuth.legacyScriptingSource = appDefWithAuth.legacyScriptingSource.replace(
+        'file_pre_write_fully_replaced_content',
         'file_pre_write'
       );
       const compiledApp = schemaTools.prepareApp(appDefWithAuth);

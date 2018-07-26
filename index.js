@@ -33,8 +33,9 @@ const parseFinalResult = (result, event) => {
 
       _.each(result.files, (v, k) => {
         if (Array.isArray(v) && v.length === 3) {
+          const originalHydrateURL = event.originalFiles[k][1];
           let value = v[1];
-          if (isUrl(value)) {
+          if (value === originalHydrateURL) {
             // TODO: WB doesn't stream if v[1] is changed by KEY_pre_write, it
             // interprets v[1] as a string content instead. But since we can't
             // tell if v[1] is changed here, let's stream any URL for now.
@@ -251,7 +252,15 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
             return resolve(parseFinalResult(asyncResult, event));
           };
 
+          const files = _.get(convertedBundle, 'request.files');
+          let originalFiles;
+          if (files) {
+            originalFiles = _.cloneDeep(files);
+          }
+
           result = Zap[methodName](convertedBundle, optionalCallback);
+
+          event.originalFiles = originalFiles || {};
 
           // Handle sync
           if (typeof result !== 'undefined') {
