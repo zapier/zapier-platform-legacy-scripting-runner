@@ -300,13 +300,13 @@ const legacyScriptingSource = `
       },
 
       // To be replaced with 'file_pre_write' at runtime
-      file_pre_write_fully_replaced_url: function(bundle) {
+      file_pre_write_fully_replace_url: function(bundle) {
         bundle.request.files.file = 'https://zapier-httpbin.herokuapp.com/image/jpeg';
         return bundle.request;
       },
 
       // To be replaced with 'file_pre_write' at runtime
-      file_pre_write_fully_replaced_content: function(bundle) {
+      file_pre_write_fully_replace_content: function(bundle) {
         bundle.request.files.file = 'fully replaced by file_pre_write';
         return bundle.request;
       },

@@ -38,7 +38,7 @@ const extractFilenameFromURL = url => {
 
 const parseFinalResult = (result, event, z) => {
   if (event.name.endsWith('.pre')) {
-    if (result.files) {
+    if (!_.isEmpty(result.files)) {
       const formData = new FormData();
       formData.append('data', result.data || '{}');
 
@@ -51,7 +51,7 @@ const parseFinalResult = (result, event, z) => {
                 ? extractFilenameFromContentDisposition(disposition)
                 : extractFilenameFromURL(v);
               const contentType = res.headers['content-type'];
-              return [filename, v, contentType];
+              return [filename, requestClient(v), contentType];
             });
           } else {
             const filename = v.substr(0, 12).replace('.txt', '') + ' ... .txt';
@@ -67,10 +67,14 @@ const parseFinalResult = (result, event, z) => {
       return Promise.all(fileValues).then(fileArray => {
         fileArray.forEach((v, i) => {
           if (Array.isArray(v) && v.length === 3) {
-            if (isUrl(v[1])) {
-              v = requestClient(v);
+            const k = fileKeys[i];
+            if (
+              typeof v[1] === 'string' &&
+              event.originalFiles[k][1] === v[1]
+            ) {
+              v[1] = requestClient(v[1]);
             }
-            formData.append(fileKeys[i], v[1], {
+            formData.append(k, v[1], {
               filename: v[0],
               contentType: v[2]
             });
@@ -391,11 +395,11 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
               let filePromise;
               if (isUrl(v)) {
                 filePromise = zobj.request(v, { method: 'HEAD' }).then(res => {
-                  const disposition = res.headers['content-disposition'];
+                  const disposition = res.headers.get('content-disposition');
                   const filename = disposition
                     ? extractFilenameFromContentDisposition(disposition)
                     : extractFilenameFromURL(v);
-                  const contentType = res.headers['content-type'];
+                  const contentType = res.headers.get('content-type');
                   return [k, requestClient(v), { filename, contentType }];
                 });
               } else {
