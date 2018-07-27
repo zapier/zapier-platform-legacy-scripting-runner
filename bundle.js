@@ -1,4 +1,5 @@
 const _ = require('lodash');
+const urllib = require('url');
 
 // Max parts a key can have for unflattening
 const MAX_KEY_PARTS = 6;
@@ -119,7 +120,20 @@ const addHookData = (event, bundle, convertedBundle) => {
   }
 };
 
-const addRequest = (event, bundle, convertedBundle) => {
+const extractFilenameFromContentDisposition = value => {
+  return /filename="(.*)"/gi.exec(value)[1];
+};
+
+const extractFilenameFromURL = url => {
+  const path = urllib.parse(url).pathname;
+  if (path) {
+    const parts = path.split('/');
+    return parts[parts.length - 1] || '';
+  }
+  return '';
+};
+
+const addRequest = (event, z, bundle, convertedBundle) => {
   const headers = _.get(bundle, 'request.headers', {});
   _.extend(convertedBundle.request.headers, headers);
 
@@ -144,10 +158,17 @@ const addRequest = (event, bundle, convertedBundle) => {
         files = Object.keys(body)
           .filter(k => bundle._fileFieldKeys.indexOf(k) >= 0)
           .reduce((result, k) => {
-            // TODO: Any way we can tell filename and mimetype from a hydrate URL?
-            const filename = 'filename';
-            const mimetype = 'application/octet-stream';
-            result[k] = [filename, body[k], mimetype];
+            const url = body[k];
+
+            // Send a HEAD request to get file meta data
+            result[k] = z.request(url, { method: 'HEAD' }).then(res => {
+              const disposition = res.headers['content-disposition'];
+              const filename = disposition
+                ? extractFilenameFromContentDisposition(disposition)
+                : extractFilenameFromURL(url);
+              const mimetype = res.headers['content-type'];
+              return [filename, url, mimetype];
+            });
             return result;
           }, {});
       }
@@ -171,7 +192,7 @@ const addResponse = (event, bundle, convertedBundle) => {
 };
 
 // Convert bundle from CLI to WB based on which event to run
-const bundleConverter = (bundle, event) => {
+const bundleConverter = (bundle, event, z) => {
   let defaultMethod = 'GET';
 
   if (
@@ -207,7 +228,7 @@ const bundleConverter = (bundle, event) => {
   addAuthData(event, bundle, convertedBundle);
   addInputData(event, bundle, convertedBundle);
   addHookData(event, bundle, convertedBundle);
-  addRequest(event, bundle, convertedBundle);
+  addRequest(event, z, bundle, convertedBundle);
   addResponse(event, bundle, convertedBundle);
 
   return convertedBundle;

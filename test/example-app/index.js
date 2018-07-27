@@ -278,9 +278,8 @@ const legacyScriptingSource = `
       },
 
       // To be replaced with 'file_pre_write' at runtime
-      file_pre_write_tweak_meta: function(bundle) {
-        bundle.request.files.file[0] = 'pig.png';
-        bundle.request.files.file[2] = 'image/pig';
+      file_pre_write_tweak_filename: function(bundle) {
+        bundle.request.files.file[0] = bundle.request.files.file[0].toUpperCase();
         return bundle.request;
       },
 

@@ -14,7 +14,7 @@ const withAuth = (appDef, authConfig) => {
   return _.extend(_.cloneDeep(appDef), _.cloneDeep(authConfig));
 };
 
-describe('Integration Test', () => {
+describe.only('Integration Test', () => {
   const testLogger = (/* message, data */) => {
     // console.log(message, data);
     return Promise.resolve({});
@@ -77,7 +77,7 @@ describe('Integration Test', () => {
       process.env = origEnv;
     });
 
-    it('pre_oauthv2_token', () => {
+    it.only('pre_oauthv2_token', () => {
       const appDefWithAuth = withAuth(appDefinition, oauth2Config);
       appDefWithAuth.legacyScriptingSource = appDefWithAuth.legacyScriptingSource.replace(
         'post_oauthv2_token',
@@ -1166,7 +1166,7 @@ describe('Integration Test', () => {
       return app(input).then(output => {
         const file = output.results.file;
         should.equal(file.sha1, '379f5137831350c900e757b39e525b9db1426d53');
-        should.equal(file.mimetype, 'application/octet-stream');
+        should.equal(file.mimetype, 'image/png');
         should.equal(file.originalname, 'png');
 
         const data = JSON.parse(output.results.data);
@@ -1191,7 +1191,7 @@ describe('Integration Test', () => {
       return app(input).then(output => {
         const file = output.results.file;
         should.equal(file.sha1, '379f5137831350c900e757b39e525b9db1426d53');
-        should.equal(file.mimetype, 'application/octet-stream');
+        should.equal(file.mimetype, 'image/png');
         should.equal(file.originalname, 'png');
 
         const data = JSON.parse(output.results.data);
@@ -1200,10 +1200,10 @@ describe('Integration Test', () => {
     });
 
 
-    it('file upload, KEY_pre_write tweak file meta', () => {
+    it('file upload, KEY_pre_write tweaks filename', () => {
       const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
       appDefWithAuth.legacyScriptingSource = appDefWithAuth.legacyScriptingSource.replace(
-        'file_pre_write_tweak_meta',
+        'file_pre_write_tweak_filename',
         'file_pre_write'
       );
       const compiledApp = schemaTools.prepareApp(appDefWithAuth);
@@ -1221,8 +1221,8 @@ describe('Integration Test', () => {
       return app(input).then(output => {
         const file = output.results.file;
         should.equal(file.sha1, '379f5137831350c900e757b39e525b9db1426d53');
-        should.equal(file.mimetype, 'image/pig');
-        should.equal(file.originalname, 'pig.png');
+        should.equal(file.mimetype, 'image/png');
+        should.equal(file.originalname, 'PNG');
 
         const data = JSON.parse(output.results.data);
         should.equal(data.filename, 'this is a pig.png');
@@ -1309,7 +1309,7 @@ describe('Integration Test', () => {
       return app(input).then(output => {
         const file = output.results.file;
         should.equal(file.sha1, 'eb1db8fa7b8277f2de5d7b40d6cdbc708aac4e52');
-        should.equal(file.mimetype, 'application/octet-stream');
+        should.equal(file.mimetype, 'image/jpeg');
         should.equal(file.originalname, 'jpeg');
 
         const data = JSON.parse(output.results.data);

@@ -1,8 +1,7 @@
-'use strict';
-
 const _ = require('lodash');
 const FormData = require('form-data');
 const requestClient = require('request');
+const urllib = require('url');
 
 const cleaner = require('zapier-platform-core/src/tools/cleaner');
 
@@ -24,61 +23,85 @@ const FIELD_TYPE_CONVERT_MAP = {
 
 const isUrl = s => s.startsWith('http://') || s.startsWith('https://');
 
-const parseFinalResult = (result, event) => {
-  // Old request was .data (string), new is .body (object), which matters for _pre
+const extractFilenameFromContentDisposition = value => {
+  return /filename="(.*)"/gi.exec(value)[1];
+};
+
+const extractFilenameFromURL = url => {
+  const path = urllib.parse(url).pathname;
+  if (path) {
+    const parts = path.split('/');
+    return parts[parts.length - 1] || '';
+  }
+  return '';
+};
+
+const parseFinalResult = (result, event, z) => {
   if (event.name.endsWith('.pre')) {
     if (result.files) {
       const formData = new FormData();
       formData.append('data', result.data || '{}');
 
       _.each(result.files, (v, k) => {
-        if (Array.isArray(v) && v.length === 3) {
-          const originalHydrateURL = event.originalFiles[k][1];
-          let value = v[1];
-          if (value === originalHydrateURL) {
-            // TODO: WB doesn't stream if v[1] is changed by KEY_pre_write, it
-            // interprets v[1] as a string content instead. But since we can't
-            // tell if v[1] is changed here, let's stream any URL for now.
-            value = requestClient(value);
-          }
-          formData.append(k, value, {
-            filename: v[0],
-            contentType: v[2]
-          });
-        } else if (typeof v === 'string') {
-          let options = {};
+        if (typeof v === 'string') {
           if (isUrl(v)) {
-            v = requestClient(v);
+            result.files[k] = z.request(v, { method: 'HEAD' }).then(res => {
+              const disposition = res.headers['content-disposition'];
+              const filename = disposition
+                ? extractFilenameFromContentDisposition(disposition)
+                : extractFilenameFromURL(v);
+              const contentType = res.headers['content-type'];
+              return [filename, v, contentType];
+            });
           } else {
-            options = {
-              // TODO: Generate filename from string content
-              filename: 'filename.txt',
-              contentType: 'text/plain'
-            };
+            const filename = v.substr(0, 12).replace('.txt', '') + ' ... .txt';
+            const contentType = 'text/plain';
+            result.files[k] = [filename, v, contentType];
           }
-          formData.append(k, v, options);
         }
       });
 
-      result.body = formData;
-    } else {
-      try {
-        result.body = JSON.parse(result.data || '{}');
-      } catch (e) {
-        result.body = result.data;
-      }
+      const fileKeys = Object.keys(result.files);
+      const fileValues = Object.values(result.files);
+
+      return Promise.all(fileValues).then(fileArray => {
+        fileArray.forEach((v, i) => {
+          if (Array.isArray(v) && v.length === 3) {
+            if (isUrl(v[1])) {
+              v = requestClient(v);
+            }
+            formData.append(fileKeys[i], v[1], {
+              filename: v[0],
+              contentType: v[2]
+            });
+          }
+        });
+
+        result.body = formData;
+        return result;
+      });
     }
+
+    // Old request was .data (string), new is .body (object), which matters for _pre
+    try {
+      result.body = JSON.parse(result.data || '{}');
+    } catch (e) {
+      result.body = result.data;
+    }
+    return Promise.resolve(result);
   }
 
   // Old writes accepted a list, but CLI doesn't anymore, which matters for _write and _post_write
   if (event.name === 'create.write' || event.name === 'create.post') {
+    let resultObj;
     if (Array.isArray(result) && result.length) {
-      return result[0];
+      resultObj = result[0];
     } else if (!Array.isArray(result)) {
-      return result;
+      resultObj = result;
+    } else {
+      resultObj = {};
     }
-
-    return {};
+    return Promise.resolve(resultObj);
   }
 
   if (
@@ -94,7 +117,7 @@ const parseFinalResult = (result, event) => {
     }
   }
 
-  return result;
+  return Promise.resolve(result);
 };
 
 const replaceCurliesInRequest = (request, bundle) => {
@@ -233,10 +256,11 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
   const runEvent = (event, z, bundle) =>
     new Promise((resolve, reject) => {
       if (!Zap || _.isEmpty(Zap) || !event || !event.name || !z) {
-        return resolve();
+        resolve();
+        return;
       }
 
-      const convertedBundle = bundleConverter(bundle, event);
+      const convertedBundle = bundleConverter(bundle, event, z);
       const eventNameToMethod = createEventNameToMethodMapping(event.key);
       const methodName = eventNameToMethod[event.name];
 
@@ -247,33 +271,40 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
           // Handle async
           const optionalCallback = (error, asyncResult) => {
             if (error) {
-              return reject(error);
+              reject(error);
             }
-            return resolve(parseFinalResult(asyncResult, event));
+            parseFinalResult(asyncResult, event, z).then(res => {
+              resolve(res);
+            });
+            return;
           };
 
-          const files = _.get(convertedBundle, 'request.files');
-          let originalFiles;
-          if (files) {
-            originalFiles = _.cloneDeep(files);
-          }
+          const filePromiseMap = _.get(convertedBundle, 'request.files') || {};
+          const fileKeys = Object.keys(filePromiseMap);
+          const filePromises = Object.values(filePromiseMap);
 
-          result = Zap[methodName](convertedBundle, optionalCallback);
+          Promise.all(filePromises).then(fileArray => {
+            const files = _.zipObject(fileKeys, fileArray);
+            const originalFiles = _.cloneDeep(files);
+            convertedBundle.request.files = files;
 
-          event.originalFiles = originalFiles || {};
+            result = Zap[methodName](convertedBundle, optionalCallback);
 
-          // Handle sync
-          if (typeof result !== 'undefined') {
-            return resolve(parseFinalResult(result, event));
-          }
+            event.originalFiles = originalFiles || {};
+
+            // Handle sync
+            if (typeof result !== 'undefined') {
+              parseFinalResult(result, event, z).then(res => {
+                resolve(res);
+              });
+            }
+          });
         } catch (e) {
-          return reject(e);
+          reject(e);
         }
       } else {
-        return resolve({});
+        resolve({});
       }
-
-      return undefined;
     });
 
   // Simulates how WB backend runs JS scripting methods
@@ -350,23 +381,47 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
         const isBodyStream = typeof _.get(request, 'body.pipe') === 'function';
 
         if (bundle._fileFieldKeys && !isBodyStream) {
-          const formData = new FormData();
+          const filePromises = [];
           const data = {};
 
           _.each(request.body, (v, k) => {
             if (bundle._fileFieldKeys.indexOf(k) === -1) {
               data[k] = v;
             } else if (typeof v === 'string') {
+              let filePromise;
               if (isUrl(v)) {
-                v = requestClient(v);
+                filePromise = zobj.request(v, { method: 'HEAD' }).then(res => {
+                  const disposition = res.headers['content-disposition'];
+                  const filename = disposition
+                    ? extractFilenameFromContentDisposition(disposition)
+                    : extractFilenameFromURL(v);
+                  const contentType = res.headers['content-type'];
+                  return [k, requestClient(v), { filename, contentType }];
+                });
+              } else {
+                const filename =
+                  v.substr(0, 12).replace('.txt', '') + ' ... .txt';
+                const contentType = 'text/plain';
+                filePromise = [k, v, { filename, contentType }];
               }
-              formData.append(k, v);
+              filePromises.push(filePromise);
             }
           });
 
-          formData.append('data', JSON.stringify(data));
-          request.body = formData;
+          return Promise.all(filePromises).then(fileArray => {
+            const formData = new FormData();
+            formData.append('data', JSON.stringify(data));
+
+            fileArray.forEach(v => {
+              const [k, val, opts] = v;
+              formData.append(k, val, opts);
+            });
+
+            request.body = formData;
+            return zobj.request(request);
+          });
         }
+
         return zobj.request(request);
       });
 
