@@ -162,11 +162,11 @@ const addRequest = (event, z, bundle, convertedBundle) => {
 
             // Send a HEAD request to get file meta data
             result[k] = z.request(url, { method: 'HEAD' }).then(res => {
-              const disposition = res.headers['content-disposition'];
+              const disposition = res.headers.get('content-disposition');
               const filename = disposition
                 ? extractFilenameFromContentDisposition(disposition)
                 : extractFilenameFromURL(url);
-              const mimetype = res.headers['content-type'];
+              const mimetype = res.headers.get('content-type');
               return [filename, url, mimetype];
             });
             return result;

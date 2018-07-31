@@ -1253,7 +1253,7 @@ describe('Integration Test', () => {
         const file = output.results.file;
         should.equal(file.sha1, '44da0f5c0e4c27f945e97fccf59b69e06b767828');
         should.equal(file.mimetype, 'image/jpeg');
-        should.equal(file.originalname, 'wolf.jpg');
+        should.equal(file.originalname, 'file_pre_write_was_here.png');
 
         const data = JSON.parse(output.results.data);
         should.equal(data.filename, 'this is a wolf.jpg');
@@ -1282,7 +1282,7 @@ describe('Integration Test', () => {
         const file = output.results.file;
         should.equal(file.sha1, 'e3076b0be57756b9e7e23192a9d29dfb0b3f4b31');
         should.equal(file.mimetype, 'text/plain');
-        should.equal(file.originalname, 'file_pre_write_was_here.txt');
+        should.equal(file.originalname, 'png.txt');
 
         const data = JSON.parse(output.results.data);
         should.equal(data.filename, 'dont.care');
