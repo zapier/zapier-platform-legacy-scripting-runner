@@ -166,7 +166,7 @@ const addRequest = (event, z, bundle, convertedBundle) => {
               const filename = disposition
                 ? extractFilenameFromContentDisposition(disposition)
                 : extractFilenameFromURL(url);
-              const mimetype = res.headers.get('content-type');
+              const mimetype = res.headers.get('content-type') || 'application/octet-stream';
               return [filename, url, mimetype];
             });
             return result;

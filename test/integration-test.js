@@ -1346,6 +1346,35 @@ describe('Integration Test', () => {
         should.equal(data.filename, 'dont.care');
       });
     });
+
+    it('file upload, KEY_pre_write with content disposition', () => {
+      const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
+      appDefWithAuth.legacyScriptingSource = appDefWithAuth.legacyScriptingSource.replace(
+        'file_pre_write_content_dispoistion',
+        'file_pre_write'
+      );
+      const compiledApp = schemaTools.prepareApp(appDefWithAuth);
+      const app = createApp(appDefWithAuth);
+
+      const input = createTestInput(
+        compiledApp,
+        'creates.file.operation.perform'
+      );
+      input.bundle.authData = { api_key: 'secret' };
+      input.bundle.inputData = {
+        filename: 'dont.care',
+        file: 'https://zapier-httpbin.herokuapp.com/image/png'
+      };
+      return app(input).then(output => {
+        const file = output.results.file;
+        should.equal(file.sha1, '7ab4ae371a74447deb74923cb4dd4cbd3c37f278');
+        should.equal(file.mimetype, 'application/json');
+        should.equal(file.originalname, 'example.json');
+
+        const data = JSON.parse(output.results.data);
+        should.equal(data.filename, 'dont.care');
+      });
+    });
   });
 
   describe('search', () => {

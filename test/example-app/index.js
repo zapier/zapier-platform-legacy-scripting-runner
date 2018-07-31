@@ -313,6 +313,13 @@ const legacyScriptingSource = `
         return bundle.request;
       },
 
+      file_pre_write_content_dispoistion: function(bundle) {
+        bundle.request.files.file =
+          'https://zapier-httpbin.herokuapp.com/response-headers?' +
+          'Content-Disposition=filename=%22example.json%22';
+        return bundle.request;
+      },
+
       /*
        * Search
        */

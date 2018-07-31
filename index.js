@@ -46,11 +46,11 @@ const parseFinalResult = (result, event, z) => {
         if (typeof v === 'string') {
           if (isUrl(v)) {
             result.files[k] = z.request(v, { method: 'HEAD' }).then(res => {
-              const disposition = res.headers['content-disposition'];
+              const disposition = res.headers.get('content-disposition');
               const filename = disposition
                 ? extractFilenameFromContentDisposition(disposition)
                 : extractFilenameFromURL(v);
-              const contentType = res.headers['content-type'];
+              const contentType = res.headers.get('content-type') || 'application/octet-stream';
               return [filename, requestClient(v), contentType];
             });
           } else {
@@ -399,7 +399,7 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
                   const filename = disposition
                     ? extractFilenameFromContentDisposition(disposition)
                     : extractFilenameFromURL(v);
-                  const contentType = res.headers.get('content-type');
+                  const contentType = res.headers.get('content-type') || 'application/octet-stream';
                   return [k, requestClient(v), { filename, contentType }];
                 });
               } else {
