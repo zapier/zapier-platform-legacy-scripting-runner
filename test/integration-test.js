@@ -1192,13 +1192,39 @@ describe('Integration Test', () => {
         const file = output.results.file;
         should.equal(file.sha1, '379f5137831350c900e757b39e525b9db1426d53');
         should.equal(file.mimetype, 'image/png');
-
-        // TODO: The expected filename is 'png' here, but z.request
-        // (i.e. node-fetch) doesn't give us the final redirected URL, so...
-        should.equal(file.originalname, 'redirect-to');
+        should.equal(file.originalname, 'png');
 
         const data = JSON.parse(output.results.data);
         should.equal(data.filename, 'this is a pig.png');
+      });
+    });
+
+    it.skip('file upload, scriptingless multi-file zip', () => {
+      const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
+      appDefWithAuth.creates.file.operation.legacyProperties.url +=
+        '?computeZipHash=1';
+      const compiledApp = schemaTools.prepareApp(appDefWithAuth);
+      const app = createApp(appDefWithAuth);
+
+      const input = createTestInput(
+        compiledApp,
+        'creates.file.operation.perform'
+      );
+      input.bundle.authData = { api_key: 'secret' };
+      input.bundle.inputData = {
+        filename: 'pig and wolf.zip',
+        file:
+          'https://zapier-httpbin.herokuapp.com/image/png,' +
+          'https://zapier-httpbin.herokuapp.com/image/jpeg'
+      };
+      return app(input).then(output => {
+        const file = output.results.file;
+        should.equal(file.zipsha1, '986deff9146ce546c749fb1604383929e804bcae');
+        should.equal(file.mimetype, 'application/zip');
+        should.equal(file.originalname, 'png jpeg.zip');
+
+        const data = JSON.parse(output.results.data);
+        should.equal(data.filename, 'pig and wolf.zip');
       });
     });
 

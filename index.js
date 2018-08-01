@@ -1,11 +1,15 @@
 const _ = require('lodash');
 const FormData = require('form-data');
-const requestClient = require('request');
-const urllib = require('url');
 
 const cleaner = require('zapier-platform-core/src/tools/cleaner');
 
 const bundleConverter = require('./bundle');
+const {
+  markFileFieldsInBundle,
+  hasFileFields,
+  isFileField,
+  LazyFile
+} = require('./file');
 
 const FIELD_TYPE_CONVERT_MAP = {
   // field_type_in_wb: field_type_in_cli
@@ -21,69 +25,56 @@ const FIELD_TYPE_CONVERT_MAP = {
   unicode: 'string'
 };
 
-const isUrl = s => s.startsWith('http://') || s.startsWith('https://');
-
-const extractFilenameFromContentDisposition = value => {
-  return /filename="(.*)"/gi.exec(value)[1];
-};
-
-const extractFilenameFromURL = url => {
-  const path = urllib.parse(url).pathname;
-  if (path) {
-    const parts = path.split('/');
-    return parts[parts.length - 1] || '';
-  }
-  return '';
-};
-
-const parseFinalResult = (result, event, z) => {
+const parseFinalResult = async (result, event) => {
   if (event.name.endsWith('.pre')) {
     if (!_.isEmpty(result.files)) {
       const formData = new FormData();
       formData.append('data', result.data || '{}');
 
-      _.each(result.files, (v, k) => {
-        if (typeof v === 'string') {
-          if (isUrl(v)) {
-            result.files[k] = z.request(v, { method: 'HEAD' }).then(res => {
-              const disposition = res.headers.get('content-disposition');
-              const filename = disposition
-                ? extractFilenameFromContentDisposition(disposition)
-                : extractFilenameFromURL(v);
-              const contentType = res.headers.get('content-type') || 'application/octet-stream';
-              return [filename, requestClient(v), contentType];
-            });
-          } else {
-            const filename = v.substr(0, 12).replace('.txt', '') + ' ... .txt';
-            const contentType = 'text/plain';
-            result.files[k] = [filename, v, contentType];
-          }
+      const fileFieldKeys = Object.keys(result.files);
+      const lazyFiles = fileFieldKeys.map(k => {
+        const file = result.files[k];
+        let lazyFile;
+        if (Array.isArray(file) && file.length === 3) {
+          const [filename, newFileValue, contentType] = file;
+          // If pre_write changes the hydrate URL, file[1], we take it as a
+          // string content even if it looks like a URL
+          const loadUrls = newFileValue === event.originalFiles[k][1];
+          lazyFile = LazyFile(
+            newFileValue,
+            { filename, contentType },
+            { dontLoadUrls: !loadUrls }
+          );
+        } else if (typeof file === 'string') {
+          lazyFile = LazyFile(file);
         }
+        return lazyFile;
       });
-
-      const fileKeys = Object.keys(result.files);
-      const fileValues = Object.values(result.files);
-
-      return Promise.all(fileValues).then(fileArray => {
-        fileArray.forEach((v, i) => {
-          if (Array.isArray(v) && v.length === 3) {
-            const k = fileKeys[i];
-            if (
-              typeof v[1] === 'string' &&
-              event.originalFiles[k][1] === v[1]
-            ) {
-              v[1] = requestClient(v[1]);
-            }
-            formData.append(k, v[1], {
-              filename: v[0],
-              contentType: v[2]
-            });
+      const fileMetas = await Promise.all(
+        lazyFiles.map(f => {
+          if (!f) {
+            return undefined;
           }
-        });
-
-        result.body = formData;
-        return result;
+          return f.meta();
+        })
+      );
+      const fileStreams = lazyFiles.map(f => {
+        if (!f) {
+          return undefined;
+        }
+        return f.readStream();
       });
+
+      _.zip(fileFieldKeys, fileMetas, fileStreams).forEach(record => {
+        const [k, meta, fileStream] = record;
+        if (!meta) {
+          return;
+        }
+        formData.append(k, fileStream, meta);
+      });
+
+      result.body = formData;
+      return result;
     }
 
     // Old request was .data (string), new is .body (object), which matters for _pre
@@ -264,6 +255,53 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
         return;
       }
 
+      bundleConverter(bundle, event, z).then(convertedBundle => {
+        const eventNameToMethod = createEventNameToMethodMapping(event.key);
+        const methodName = eventNameToMethod[event.name];
+
+        if (methodName && _.isFunction(Zap[methodName])) {
+          // Handle async
+          const optionalCallback = (err, asyncResult) => {
+            if (err) {
+              reject(err);
+            } else {
+              parseFinalResult(asyncResult, event).then(res => {
+                resolve(res);
+              });
+            }
+          };
+
+          // To know if request.files is changed by scripting
+          event.originalFiles = _.cloneDeep(
+            _.get(convertedBundle, 'request.files') || {}
+          );
+
+          let result;
+          try {
+            result = Zap[methodName](convertedBundle, optionalCallback);
+          } catch (err) {
+            reject(err);
+          }
+
+          // Handle sync
+          if (result !== undefined) {
+            parseFinalResult(result, event).then(res => {
+              resolve(res);
+            });
+          }
+        } else {
+          resolve({});
+        }
+      });
+    });
+
+  /*const runEvent = (event, z, bundle) =>
+    new Promise((resolve, reject) => {
+      if (!Zap || _.isEmpty(Zap) || !event || !event.name || !z) {
+        resolve();
+        return;
+      }
+
       const convertedBundle = bundleConverter(bundle, event, z);
       const eventNameToMethod = createEventNameToMethodMapping(event.key);
       const methodName = eventNameToMethod[event.name];
@@ -311,8 +349,10 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
       }
     });
 
+  */
+
   // Simulates how WB backend runs JS scripting methods
-  const runEventCombo = (
+  const runEventCombo = async (
     bundle,
     key,
     preEventName,
@@ -349,7 +389,7 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
       bundle.request = replaceCurliesInRequest(bundle.request, bundle);
     }
 
-    let promise;
+    let result;
 
     const eventNameToMethod = createEventNameToMethodMapping(key);
 
@@ -372,107 +412,80 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
       }
 
       // Running "full" scripting method like KEY_poll
-      promise = runEvent({ key, name: fullEventName }, zobj, bundle);
+      result = await runEvent({ key, name: fullEventName }, zobj, bundle);
     } else {
       const preMethod = preMethodName ? Zap[preMethodName] : null;
-      if (preMethod) {
-        promise = runEvent({ key, name: preEventName }, zobj, bundle);
-      } else {
-        promise = Promise.resolve(bundle.request);
+      const request = preMethod
+        ? await runEvent({ key, name: preEventName }, zobj, bundle)
+        : bundle.request;
+
+      const isBodyStream = typeof _.get(request, 'body.pipe') === 'function';
+
+      if (hasFileFields(bundle) && !isBodyStream) {
+        const data = {};
+        const fileFieldKeys = [];
+        const lazyFiles = [];
+
+        _.each(request.body, (v, k) => {
+          if (!isFileField(k, bundle)) {
+            data[k] = v;
+          } else if (typeof v === 'string') {
+            fileFieldKeys.push(k);
+            lazyFiles.push(LazyFile(v));
+          }
+        });
+
+        const fileMetas = await Promise.all(lazyFiles.map(f => f.meta()));
+        const fileStreams = lazyFiles.map(f => f.readStream());
+
+        const formData = new FormData();
+        formData.append('data', JSON.stringify(data));
+
+        _.zip(fileFieldKeys, fileMetas, fileStreams).forEach(record => {
+          const [k, meta, fileStream] = record;
+          formData.append(k, fileStream, meta);
+        });
+
+        request.body = formData;
       }
 
-      promise = promise.then(request => {
-        const isBodyStream = typeof _.get(request, 'body.pipe') === 'function';
-
-        if (bundle._fileFieldKeys && !isBodyStream) {
-          const filePromises = [];
-          const data = {};
-
-          _.each(request.body, (v, k) => {
-            if (bundle._fileFieldKeys.indexOf(k) === -1) {
-              data[k] = v;
-            } else if (typeof v === 'string') {
-              let filePromise;
-              if (isUrl(v)) {
-                filePromise = zobj.request(v, { method: 'HEAD' }).then(res => {
-                  const disposition = res.headers.get('content-disposition');
-                  const filename = disposition
-                    ? extractFilenameFromContentDisposition(disposition)
-                    : extractFilenameFromURL(v);
-                  const contentType = res.headers.get('content-type') || 'application/octet-stream';
-                  return [k, requestClient(v), { filename, contentType }];
-                });
-              } else {
-                const filename =
-                  v.substr(0, 12).replace('.txt', '') + ' ... .txt';
-                const contentType = 'text/plain';
-                filePromise = [k, v, { filename, contentType }];
-              }
-              filePromises.push(filePromise);
-            }
-          });
-
-          return Promise.all(filePromises).then(fileArray => {
-            const formData = new FormData();
-            formData.append('data', JSON.stringify(data));
-
-            fileArray.forEach(v => {
-              const [k, val, opts] = v;
-              formData.append(k, val, opts);
-            });
-
-            request.body = formData;
-            return zobj.request(request);
-          });
-        }
-
-        return zobj.request(request);
-      });
+      const response = await zobj.request(request);
 
       if (options.checkResponseStatus) {
-        promise = promise.then(response => {
-          response.throwForStatus();
-          return response;
-        });
+        response.throwForStatus();
       }
 
       if (!options.parseResponse) {
-        return promise;
+        return response;
       }
 
       const postMethod = postMethodName ? Zap[postMethodName] : null;
-      if (postMethod) {
-        promise = promise.then(response =>
-          runEvent({ key, name: postEventName, response }, zobj, bundle)
-        );
-      } else {
-        promise = promise.then(response => zobj.JSON.parse(response.content));
-      }
+      result = postMethod
+        ? await runEvent({ key, name: postEventName, response }, zobj, bundle)
+        : zobj.JSON.parse(response.content);
     }
 
     if (options.ensureArray) {
-      promise = promise.then(result => {
-        if (Array.isArray(result)) {
-          return result;
-        } else if (result && typeof result === 'object') {
-          if (options.ensureArray === 'wrap') {
-            // Used by auth label and auth test
-            return [result];
-          } else {
-            // Find the first array in the response
-            for (const k in result) {
-              const value = result[k];
-              if (Array.isArray(value)) {
-                return value;
-              }
+      if (Array.isArray(result)) {
+        return result;
+      } else if (result && typeof result === 'object') {
+        if (options.ensureArray === 'wrap') {
+          // Used by auth label and auth test
+          return [result];
+        } else {
+          // Find the first array in the response
+          for (const k in result) {
+            const value = result[k];
+            if (Array.isArray(value)) {
+              return value;
             }
           }
         }
-        throw new Error('JSON results array could not be located.');
-      });
+      }
+      throw new Error('JSON results array could not be located.');
     }
 
-    return promise;
+    return result;
   };
 
   const runOAuth2GetAccessToken = bundle => {
@@ -685,17 +698,7 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
     const inputFields =
       _.get(app, `creates.${key}.operation.inputFields`) || [];
 
-    // This doesn't include custom 'file' fields as such info isn't available
-    // here in the bundle.
-    // TODO: Find a way to fix?
-    const fileFieldKeys = inputFields
-      .filter(field => field.type === 'file')
-      .map(field => field.key);
-
-    if (fileFieldKeys.length > 0) {
-      // Add to bundle so that bundleConverter knows which fields are files
-      bundle._fileFieldKeys = fileFieldKeys;
-    }
+    markFileFieldsInBundle(bundle, inputFields);
 
     const body = {};
     _.each(bundle.inputData, (v, k) => {

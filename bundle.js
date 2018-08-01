@@ -1,5 +1,6 @@
 const _ = require('lodash');
-const urllib = require('url');
+
+const { isFileField, LazyFile } = require('./file');
 
 // Max parts a key can have for unflattening
 const MAX_KEY_PARTS = 6;
@@ -120,20 +121,7 @@ const addHookData = (event, bundle, convertedBundle) => {
   }
 };
 
-const extractFilenameFromContentDisposition = value => {
-  return /filename="(.*)"/gi.exec(value)[1];
-};
-
-const extractFilenameFromURL = url => {
-  const path = urllib.parse(url).pathname;
-  if (path) {
-    const parts = path.split('/');
-    return parts[parts.length - 1] || '';
-  }
-  return '';
-};
-
-const addRequest = (event, z, bundle, convertedBundle) => {
+const addRequest = async (event, z, bundle, convertedBundle) => {
   const headers = _.get(bundle, 'request.headers', {});
   _.extend(convertedBundle.request.headers, headers);
 
@@ -149,26 +137,28 @@ const addRequest = (event, z, bundle, convertedBundle) => {
       if (bundle._fileFieldKeys) {
         // Exclude file fields from request.data
         data = Object.keys(body)
-          .filter(k => bundle._fileFieldKeys.indexOf(k) === -1)
+          .filter(k => !isFileField(k, bundle))
           .reduce((result, k) => {
             result[k] = body[k];
             return result;
           }, {});
 
-        files = Object.keys(body)
-          .filter(k => bundle._fileFieldKeys.indexOf(k) >= 0)
-          .reduce((result, k) => {
-            const url = body[k];
+        const fileFieldKeys = Object.keys(body).filter(k =>
+          isFileField(k, bundle)
+        );
+        const fileMetas = await Promise.all(
+          fileFieldKeys.map(k => LazyFile(body[k]).meta())
+        );
 
-            // Send a HEAD request to get file meta data
-            result[k] = z.request(url, { method: 'HEAD' }).then(res => {
-              const disposition = res.headers.get('content-disposition');
-              const filename = disposition
-                ? extractFilenameFromContentDisposition(disposition)
-                : extractFilenameFromURL(url);
-              const mimetype = res.headers.get('content-type') || 'application/octet-stream';
-              return [filename, url, mimetype];
-            });
+        files = _.zip(fileFieldKeys, fileMetas)
+          .map(kv => {
+            const [k, meta] = kv;
+            const urlOrContent = body[k];
+            return [k, [meta.filename, urlOrContent, meta.contentType]];
+          })
+          .reduce((result, entry) => {
+            const [k, file] = entry;
+            result[k] = file;
             return result;
           }, {});
       }
@@ -177,6 +167,7 @@ const addRequest = (event, z, bundle, convertedBundle) => {
     }
 
     convertedBundle.request.data = data;
+
     if (!_.isEmpty(files)) {
       convertedBundle.request.files = files;
       delete convertedBundle.request.headers['Content-Type'];
@@ -192,7 +183,7 @@ const addResponse = (event, bundle, convertedBundle) => {
 };
 
 // Convert bundle from CLI to WB based on which event to run
-const bundleConverter = (bundle, event, z) => {
+const bundleConverter = async (bundle, event, z) => {
   let defaultMethod = 'GET';
 
   if (
@@ -228,7 +219,7 @@ const bundleConverter = (bundle, event, z) => {
   addAuthData(event, bundle, convertedBundle);
   addInputData(event, bundle, convertedBundle);
   addHookData(event, bundle, convertedBundle);
-  addRequest(event, z, bundle, convertedBundle);
+  await addRequest(event, z, bundle, convertedBundle);
   addResponse(event, bundle, convertedBundle);
 
   return convertedBundle;
