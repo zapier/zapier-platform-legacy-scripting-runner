@@ -285,62 +285,6 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
       });
     });
 
-  /*const runEvent = (event, z, bundle) =>
-    new Promise((resolve, reject) => {
-      if (!Zap || _.isEmpty(Zap) || !event || !event.name || !z) {
-        resolve();
-        return;
-      }
-
-      const convertedBundle = bundleConverter(bundle, event, z);
-      const eventNameToMethod = createEventNameToMethodMapping(event.key);
-      const methodName = eventNameToMethod[event.name];
-
-      if (methodName && _.isFunction(Zap[methodName])) {
-        let result;
-
-        try {
-          // Handle async
-          const optionalCallback = (error, asyncResult) => {
-            if (error) {
-              reject(error);
-            }
-            parseFinalResult(asyncResult, event, z).then(res => {
-              resolve(res);
-            });
-            return;
-          };
-
-          const filePromiseMap = _.get(convertedBundle, 'request.files') || {};
-          const fileKeys = Object.keys(filePromiseMap);
-          const filePromises = Object.values(filePromiseMap);
-
-          Promise.all(filePromises).then(fileArray => {
-            const files = _.zipObject(fileKeys, fileArray);
-            const originalFiles = _.cloneDeep(files);
-            convertedBundle.request.files = files;
-
-            result = Zap[methodName](convertedBundle, optionalCallback);
-
-            event.originalFiles = originalFiles || {};
-
-            // Handle sync
-            if (typeof result !== 'undefined') {
-              parseFinalResult(result, event, z).then(res => {
-                resolve(res);
-              });
-            }
-          });
-        } catch (e) {
-          reject(e);
-        }
-      } else {
-        resolve({});
-      }
-    });
-
-  */
-
   // Simulates how WB backend runs JS scripting methods
   const runEventCombo = async (
     bundle,
