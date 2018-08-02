@@ -83,8 +83,7 @@ describe('bundleConverter', () => {
       })
     );
 
-    _.zip(events, results).forEach(kv => {
-      const [eventName, result] = kv;
+    _.zip(events, results).forEach(([eventName, result]) => {
       result.should.eql(
         expectedBundle,
         `Expected bundle mismatch for "${eventName}".`
@@ -146,8 +145,7 @@ describe('bundleConverter', () => {
       })
     );
 
-    _.zip(events, results).forEach(kv => {
-      const [eventName, result] = kv;
+    _.zip(events, results).forEach(([eventName, result]) => {
       result.should.eql(
         expectedBundle,
         `Expected bundle mismatch for "${eventName}".`
@@ -523,8 +521,7 @@ describe('bundleConverter', () => {
       })
     );
 
-    _.zip(events, results).forEach(kv => {
-      const [eventName, result] = kv;
+    _.zip(events, results).forEach(([eventName, result]) => {
       result.should.eql(
         expectedBundle,
         `Expected bundle mismatch for "${eventName}".`
@@ -587,8 +584,7 @@ describe('bundleConverter', () => {
       })
     );
 
-    _.zip(events, results).forEach(kv => {
-      const [eventName, result] = kv;
+    _.zip(events, results).forEach(([eventName, result]) => {
       result.should.eql(
         expectedBundle,
         `Expected bundle mismatch for "${eventName}".`
@@ -647,8 +643,7 @@ describe('bundleConverter', () => {
       })
     );
 
-    _.zip(events, results).forEach(kv => {
-      const [eventName, result] = kv;
+    _.zip(events, results).forEach(([eventName, result]) => {
       result.should.eql(
         expectedBundle,
         `Expected bundle mismatch for "${eventName}".`
@@ -707,8 +702,7 @@ describe('bundleConverter', () => {
       })
     );
 
-    _.zip(events, results).forEach(kv => {
-      const [eventName, result] = kv;
+    _.zip(events, results).forEach(([eventName, result]) => {
       result.should.eql(
         expectedBundle,
         `Expected bundle mismatch for "${eventName}".`
@@ -773,8 +767,7 @@ describe('bundleConverter', () => {
       })
     );
 
-    _.zip(events, results).forEach(kv => {
-      const [eventName, result] = kv;
+    _.zip(events, results).forEach(([eventName, result]) => {
       result.should.eql(
         expectedBundle,
         `Expected bundle mismatch for "${eventName}".`
@@ -848,8 +841,7 @@ describe('bundleConverter', () => {
       })
     );
 
-    _.zip(events, results).forEach(kv => {
-      const [eventName, result] = kv;
+    _.zip(events, results).forEach(([eventName, result]) => {
       result.should.eql(
         expectedBundle,
         `Expected bundle mismatch for "${eventName}".`
@@ -906,8 +898,7 @@ describe('bundleConverter', () => {
       })
     );
 
-    _.zip(events, results).forEach(kv => {
-      const [eventName, result] = kv;
+    _.zip(events, results).forEach(([eventName, result]) => {
       result.should.eql(
         expectedBundle,
         `Expected bundle mismatch for "${eventName}".`
@@ -976,8 +967,7 @@ describe('bundleConverter', () => {
       })
     );
 
-    _.zip(events, results).forEach(kv => {
-      const [eventName, result] = kv;
+    _.zip(events, results).forEach(([eventName, result]) => {
       result.should.eql(
         expectedBundle,
         `Expected bundle mismatch for "${eventName}".`
@@ -1029,8 +1019,7 @@ describe('bundleConverter', () => {
       })
     );
 
-    _.zip(events, results).forEach(kv => {
-      const [eventName, result] = kv;
+    _.zip(events, results).forEach(([eventName, result]) => {
       result.should.eql(
         expectedBundle,
         `Expected bundle mismatch for "${eventName}".`
@@ -1083,8 +1072,7 @@ describe('bundleConverter', () => {
       })
     );
 
-    _.zip(events, results).forEach(kv => {
-      const [eventName, result] = kv;
+    _.zip(events, results).forEach(([eventName, result]) => {
       result.should.eql(
         expectedBundle,
         `Expected bundle mismatch for "${eventName}".`

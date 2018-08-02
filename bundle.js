@@ -151,13 +151,11 @@ const addRequest = async (event, z, bundle, convertedBundle) => {
         );
 
         files = _.zip(fileFieldKeys, fileMetas)
-          .map(kv => {
-            const [k, meta] = kv;
+          .map(([k, meta]) => {
             const urlOrContent = body[k];
             return [k, [meta.filename, urlOrContent, meta.contentType]];
           })
-          .reduce((result, entry) => {
-            const [k, file] = entry;
+          .reduce((result, [k, file]) => {
             result[k] = file;
             return result;
           }, {});

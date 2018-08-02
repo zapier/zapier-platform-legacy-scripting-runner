@@ -50,28 +50,16 @@ const parseFinalResult = async (result, event) => {
         }
         return lazyFile;
       });
-      const fileMetas = await Promise.all(
-        lazyFiles.map(f => {
-          if (!f) {
-            return undefined;
-          }
-          return f.meta();
-        })
-      );
-      const fileStreams = lazyFiles.map(f => {
-        if (!f) {
-          return undefined;
-        }
-        return f.readStream();
-      });
+      const fileMetas = await Promise.all(lazyFiles.map(f => f && f.meta()));
+      const fileStreams = lazyFiles.map(f => f && f.readStream());
 
-      _.zip(fileFieldKeys, fileMetas, fileStreams).forEach(record => {
-        const [k, meta, fileStream] = record;
-        if (!meta) {
-          return;
+      _.zip(fileFieldKeys, fileMetas, fileStreams).forEach(
+        ([k, meta, fileStream]) => {
+          if (meta && fileStream) {
+            formData.append(k, fileStream, meta);
+          }
         }
-        formData.append(k, fileStream, meta);
-      });
+      );
 
       result.body = formData;
       return result;
@@ -441,10 +429,11 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
         const formData = new FormData();
         formData.append('data', JSON.stringify(data));
 
-        _.zip(fileFieldKeys, fileMetas, fileStreams).forEach(record => {
-          const [k, meta, fileStream] = record;
-          formData.append(k, fileStream, meta);
-        });
+        _.zip(fileFieldKeys, fileMetas, fileStreams).forEach(
+          (k, meta, fileStream) => {
+            formData.append(k, fileStream, meta);
+          }
+        );
 
         request.body = formData;
       }
