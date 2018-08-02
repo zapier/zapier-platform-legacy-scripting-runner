@@ -430,7 +430,7 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
         formData.append('data', JSON.stringify(data));
 
         _.zip(fileFieldKeys, fileMetas, fileStreams).forEach(
-          (k, meta, fileStream) => {
+          ([k, meta, fileStream]) => {
             formData.append(k, fileStream, meta);
           }
         );
