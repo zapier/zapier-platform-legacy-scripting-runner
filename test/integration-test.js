@@ -1199,7 +1199,7 @@ describe('Integration Test', () => {
       });
     });
 
-    it.skip('file upload, scriptingless multi-file zip', () => {
+    it('file upload, scriptingless multi-file zip', () => {
       const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
       appDefWithAuth.creates.file.operation.legacyProperties.url +=
         '?computeZipHash=1';

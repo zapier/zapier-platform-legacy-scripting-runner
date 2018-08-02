@@ -51,7 +51,9 @@ const parseFinalResult = async (result, event) => {
         return lazyFile;
       });
       const fileMetas = await Promise.all(lazyFiles.map(f => f && f.meta()));
-      const fileStreams = lazyFiles.map(f => f && f.readStream());
+      const fileStreams = await Promise.all(
+        lazyFiles.map(f => f && f.readStream())
+      );
 
       _.zip(fileFieldKeys, fileMetas, fileStreams).forEach(
         ([k, meta, fileStream]) => {
@@ -424,7 +426,9 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
         });
 
         const fileMetas = await Promise.all(lazyFiles.map(f => f.meta()));
-        const fileStreams = lazyFiles.map(f => f.readStream());
+        const fileStreams = await Promise.all(
+          lazyFiles.map(f => f.readStream())
+        );
 
         const formData = new FormData();
         formData.append('data', JSON.stringify(data));
