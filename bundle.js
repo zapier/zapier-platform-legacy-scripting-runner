@@ -1,6 +1,6 @@
 const _ = require('lodash');
 
-const { isFileField, LazyFile } = require('./file');
+const { isFileField, hasFileFields, LazyFile } = require('./file');
 
 // Max parts a key can have for unflattening
 const MAX_KEY_PARTS = 6;
@@ -134,7 +134,7 @@ const addRequest = async (event, z, bundle, convertedBundle) => {
       files;
 
     if (typeof data !== 'string') {
-      if (bundle._fileFieldKeys) {
+      if (hasFileFields(bundle)) {
         // Exclude file fields from request.data
         data = Object.keys(body)
           .filter(k => !isFileField(k, bundle))
