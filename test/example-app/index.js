@@ -313,10 +313,24 @@ const legacyScriptingSource = `
         return bundle.request;
       },
 
-      file_pre_write_content_dispoistion: function(bundle) {
+      file_pre_write_content_dispoistion_with_quotes: function(bundle) {
         bundle.request.files.file =
           'https://zapier-httpbin.herokuapp.com/response-headers?' +
-          'Content-Disposition=filename=%22example.json%22';
+          'Content-Disposition=filename=%22an%20example.json%22';
+        return bundle.request;
+      },
+
+      file_pre_write_content_dispoistion_no_quotes: function(bundle) {
+        bundle.request.files.file =
+          'https://zapier-httpbin.herokuapp.com/response-headers?' +
+          'Content-Disposition=filename=example.json';
+        return bundle.request;
+      },
+
+      file_pre_write_content_dispoistion_non_ascii: function(bundle) {
+        bundle.request.files.file =
+          'https://zapier-httpbin.herokuapp.com/response-headers?' +
+          'Content-Disposition=filename*=UTF-8%27%27%25E4%25B8%25AD%25E6%2596%2587.json';
         return bundle.request;
       },
 

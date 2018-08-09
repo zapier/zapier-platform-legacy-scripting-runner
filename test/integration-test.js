@@ -1373,10 +1373,10 @@ describe('Integration Test', () => {
       });
     });
 
-    it('file upload, KEY_pre_write with content disposition', () => {
+    it('file upload, KEY_pre_write, content disposition with quotes', () => {
       const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
       appDefWithAuth.legacyScriptingSource = appDefWithAuth.legacyScriptingSource.replace(
-        'file_pre_write_content_dispoistion',
+        'file_pre_write_content_dispoistion_with_quotes',
         'file_pre_write'
       );
       const compiledApp = schemaTools.prepareApp(appDefWithAuth);
@@ -1393,9 +1393,67 @@ describe('Integration Test', () => {
       };
       return app(input).then(output => {
         const file = output.results.file;
-        should.equal(file.sha1, '7ab4ae371a74447deb74923cb4dd4cbd3c37f278');
+        should.equal(file.sha1, '2912ad01b4da27374578a856fe6012a33ddcb08e');
+        should.equal(file.mimetype, 'application/json');
+        should.equal(file.originalname, 'an example.json');
+
+        const data = JSON.parse(output.results.data);
+        should.equal(data.filename, 'dont.care');
+      });
+    });
+
+    it('file upload, KEY_pre_write, content disposition without quotes', () => {
+      const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
+      appDefWithAuth.legacyScriptingSource = appDefWithAuth.legacyScriptingSource.replace(
+        'file_pre_write_content_dispoistion_no_quotes',
+        'file_pre_write'
+      );
+      const compiledApp = schemaTools.prepareApp(appDefWithAuth);
+      const app = createApp(appDefWithAuth);
+
+      const input = createTestInput(
+        compiledApp,
+        'creates.file.operation.perform'
+      );
+      input.bundle.authData = { api_key: 'secret' };
+      input.bundle.inputData = {
+        filename: 'dont.care',
+        file: 'https://zapier-httpbin.herokuapp.com/image/png'
+      };
+      return app(input).then(output => {
+        const file = output.results.file;
+        should.equal(file.sha1, '0db061d2625b61f970ad4ed0db1167f433552395');
         should.equal(file.mimetype, 'application/json');
         should.equal(file.originalname, 'example.json');
+
+        const data = JSON.parse(output.results.data);
+        should.equal(data.filename, 'dont.care');
+      });
+    });
+
+    it('file upload, KEY_pre_write, content disposition non-ascii', () => {
+      const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
+      appDefWithAuth.legacyScriptingSource = appDefWithAuth.legacyScriptingSource.replace(
+        'file_pre_write_content_dispoistion_non_ascii',
+        'file_pre_write'
+      );
+      const compiledApp = schemaTools.prepareApp(appDefWithAuth);
+      const app = createApp(appDefWithAuth);
+
+      const input = createTestInput(
+        compiledApp,
+        'creates.file.operation.perform'
+      );
+      input.bundle.authData = { api_key: 'secret' };
+      input.bundle.inputData = {
+        filename: 'dont.care',
+        file: 'https://zapier-httpbin.herokuapp.com/image/png'
+      };
+      return app(input).then(output => {
+        const file = output.results.file;
+        should.equal(file.sha1, 'a70183153aa29bfa87020ec30851cfde4dd08699');
+        should.equal(file.mimetype, 'application/json');
+        should.equal(file.originalname, '中文.json');
 
         const data = JSON.parse(output.results.data);
         should.equal(data.filename, 'dont.care');

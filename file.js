@@ -50,8 +50,35 @@ const splitUrls = str => {
 const extractFilenameFromContent = content =>
   content.substr(0, 12).replace('.txt', '') + ' ... .txt';
 
-const extractFilenameFromContentDisposition = value =>
-  /filename="(.*)"/gi.exec(value)[1];
+const extractFilenameFromContentDisposition = value => {
+  let filename = '';
+
+  // Follows RFC 6266
+  const patterns = [
+    // Example: "attachment; filename*= UTF-8''%e2%82%ac%20rates"
+    /filename\*\s*=\s*[a-z0-9_-]+''(.*)(?:;|$)/gi,
+
+    // Example: 'INLINE; FILENAME= "an example.html"'
+    /filename\s*=\s*"([^"]+)"/gi,
+
+    // Example: 'Attachment; filename=example.html'
+    /filename\s*=\s*([^ ]+)/gi
+  ];
+
+  for (const pattern of patterns) {
+    const match = pattern.exec(value);
+    if (match) {
+      filename = match[1];
+      break;
+    }
+  }
+
+  if (filename) {
+    filename = decodeURIComponent(filename);
+  }
+
+  return filename;
+};
 
 const extractFilenameFromUrl = url => {
   const pathname = urllib.parse(url).pathname;
