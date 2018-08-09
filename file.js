@@ -78,20 +78,26 @@ const extractFilenameFromUrl = url => {
   return '';
 };
 
-const fetchFileMeta = url =>
+const downloadFile = url =>
   new Promise((resolve, reject) => {
-    request({ method: 'HEAD', url }, (err, res) => {
+    request({ url, encoding: null }, (err, response, body) => {
       if (err) {
         reject(err);
-      } else {
-        const disposition = res.headers['content-disposition'];
-        const filename = disposition
-          ? extractFilenameFromContentDisposition(disposition)
-          : extractFilenameFromUrl(res.request.uri.href);
-        const contentType =
-          res.headers['content-type'] || 'application/octet-stream';
-        resolve({ filename, contentType });
+        return;
       }
+
+      const disposition = response.headers['content-disposition'];
+      const filename = disposition
+        ? extractFilenameFromContentDisposition(disposition)
+        : extractFilenameFromUrl(response.request.uri.href);
+      const contentType =
+        response.headers['content-type'] || 'application/octet-stream';
+
+      const file = {
+        meta: { filename, contentType },
+        content: body
+      };
+      resolve(file);
     });
   });
 
@@ -115,26 +121,31 @@ const ContentBackedLazyFile = (content, fileMeta) => {
 const UrlBackedLazyFile = (url, fileMeta) => {
   const hasCompleteMeta = fileMeta.filename && fileMeta.contentType;
 
-  let cachedFileMeta;
-  const fetchFileMetaWithCache = async fileUrl => {
-    // Cache fileMeta so when we call LazyFile.meta, we don't need to send an
-    // HTTP request again
-    if (cachedFileMeta) {
-      return cachedFileMeta;
+  let cachedFile;
+  const downloadFileWithCache = async fileUrl => {
+    // Cache file so when we call LazyFile.meta or LazyFile.readStream, we
+    // don't need to send an HTTP request again
+    if (cachedFile) {
+      return cachedFile;
     }
-    const fm = await fetchFileMeta(fileUrl);
-    cachedFileMeta = fm;
-    return fm;
+
+    const file = await downloadFile(fileUrl);
+    cachedFile = file;
+    return file;
   };
 
   const meta = async () => {
     if (hasCompleteMeta) {
       return fileMeta;
     }
-    const fm = fetchFileMetaWithCache(url);
-    return _.extend(fm, fileMeta);
+    const file = await downloadFileWithCache(url);
+    return _.extend(file.meta, fileMeta);
   };
-  const readStream = async () => request(url);
+
+  const readStream = async () => {
+    const file = await downloadFileWithCache(url);
+    return file.content;
+  };
 
   return { meta, readStream };
 };
