@@ -25,46 +25,51 @@ const FIELD_TYPE_CONVERT_MAP = {
   unicode: 'string'
 };
 
+const addFilesToRequestBody = async (request, event) => {
+  const formData = new FormData();
+  formData.append('data', request.data || '{}');
+
+  const fileFieldKeys = Object.keys(request.files);
+  const lazyFiles = fileFieldKeys.map(k => {
+    const file = request.files[k];
+    let lazyFile;
+    if (Array.isArray(file) && file.length === 3) {
+      const [filename, newFileValue, contentType] = file;
+      // If pre_write changes the hydrate URL, file[1], we take it as a
+      // string content even if it looks like a URL
+      const loadUrls = newFileValue === event.originalFiles[k][1];
+      lazyFile = LazyFile(
+        newFileValue,
+        { filename, contentType },
+        { dontLoadUrls: !loadUrls }
+      );
+    } else if (typeof file === 'string') {
+      lazyFile = LazyFile(file);
+    }
+    return lazyFile;
+  });
+  const fileMetas = await Promise.all(lazyFiles.map(f => f && f.meta()));
+  const fileStreams = await Promise.all(
+    lazyFiles.map(f => f && f.readStream())
+  );
+
+  _.zip(fileFieldKeys, fileMetas, fileStreams).forEach(
+    ([k, meta, fileStream]) => {
+      if (meta && fileStream) {
+        formData.append(k, fileStream, meta);
+      }
+    }
+  );
+
+  request.body = formData;
+  return request;
+};
+
 const parseFinalResult = async (result, event) => {
   if (event.name.endsWith('.pre')) {
     if (!_.isEmpty(result.files)) {
-      const formData = new FormData();
-      formData.append('data', result.data || '{}');
-
-      const fileFieldKeys = Object.keys(result.files);
-      const lazyFiles = fileFieldKeys.map(k => {
-        const file = result.files[k];
-        let lazyFile;
-        if (Array.isArray(file) && file.length === 3) {
-          const [filename, newFileValue, contentType] = file;
-          // If pre_write changes the hydrate URL, file[1], we take it as a
-          // string content even if it looks like a URL
-          const loadUrls = newFileValue === event.originalFiles[k][1];
-          lazyFile = LazyFile(
-            newFileValue,
-            { filename, contentType },
-            { dontLoadUrls: !loadUrls }
-          );
-        } else if (typeof file === 'string') {
-          lazyFile = LazyFile(file);
-        }
-        return lazyFile;
-      });
-      const fileMetas = await Promise.all(lazyFiles.map(f => f && f.meta()));
-      const fileStreams = await Promise.all(
-        lazyFiles.map(f => f && f.readStream())
-      );
-
-      _.zip(fileFieldKeys, fileMetas, fileStreams).forEach(
-        ([k, meta, fileStream]) => {
-          if (meta && fileStream) {
-            formData.append(k, fileStream, meta);
-          }
-        }
-      );
-
-      result.body = formData;
-      return result;
+      // Prepare request body from results.files and assign it to result.body
+      return addFilesToRequestBody(result, event);
     }
 
     // Old request was .data (string), new is .body (object), which matters for _pre
