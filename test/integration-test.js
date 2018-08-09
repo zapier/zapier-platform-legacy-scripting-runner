@@ -1199,35 +1199,6 @@ describe('Integration Test', () => {
       });
     });
 
-    it('file upload, scriptingless multi-file zip', () => {
-      const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
-      appDefWithAuth.creates.file.operation.legacyProperties.url +=
-        '?computeZipHash=1';
-      const compiledApp = schemaTools.prepareApp(appDefWithAuth);
-      const app = createApp(appDefWithAuth);
-
-      const input = createTestInput(
-        compiledApp,
-        'creates.file.operation.perform'
-      );
-      input.bundle.authData = { api_key: 'secret' };
-      input.bundle.inputData = {
-        filename: 'pig and wolf.zip',
-        file:
-          'https://zapier-httpbin.herokuapp.com/image/png,' +
-          'https://zapier-httpbin.herokuapp.com/image/jpeg'
-      };
-      return app(input).then(output => {
-        const file = output.results.file;
-        should.equal(file.zipsha1, '986deff9146ce546c749fb1604383929e804bcae');
-        should.equal(file.mimetype, 'application/zip');
-        should.equal(file.originalname, 'png jpeg.zip');
-
-        const data = JSON.parse(output.results.data);
-        should.equal(data.filename, 'pig and wolf.zip');
-      });
-    });
-
     it('file upload, KEY_pre_write tweaks filename', () => {
       const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
       appDefWithAuth.legacyScriptingSource = appDefWithAuth.legacyScriptingSource.replace(

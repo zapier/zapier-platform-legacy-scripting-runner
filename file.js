@@ -1,12 +1,8 @@
 // A module handling file upload, file fields, and file scripting.
 
-const fs = require('fs');
-const os = require('os');
-const path = require('path');
 const urllib = require('url');
 
 const _ = require('lodash');
-const JSZip = require('jszip');
 const request = require('request');
 
 const markFileFieldsInBundle = (bundle, inputFields) => {
@@ -32,19 +28,12 @@ const isFileField = (fieldKey, bundle) => {
   return bundle._fileFieldKeys.indexOf(fieldKey) >= 0;
 };
 
-const splitUrls = str => {
-  // TODO: Make it more like WB
-  const parts = str.split(',');
-  return parts.map(s => s.trim()).filter(s => {
-    if (!s) {
-      return false;
-    }
-    const parsed = urllib.parse(s);
-    return (
-      (parsed.protocol === 'http:' || parsed.protocol === 'https:') &&
-      parsed.hostname
-    );
-  });
+const isUrl = str => {
+  const parsed = urllib.parse(str);
+  return (
+    (parsed.protocol === 'http:' || parsed.protocol === 'https:') &&
+    parsed.hostname
+  );
 };
 
 const extractFilenameFromContent = content =>
@@ -89,13 +78,6 @@ const extractFilenameFromUrl = url => {
   return '';
 };
 
-const formatFilenameFromUrls = urls =>
-  urls
-    .map(extractFilenameFromUrl)
-    .filter(n => n)
-    .join(' ')
-    .substr(0, 240) + '.zip';
-
 const fetchFileMeta = url =>
   new Promise((resolve, reject) => {
     request({ method: 'HEAD', url }, (err, res) => {
@@ -111,30 +93,6 @@ const fetchFileMeta = url =>
         resolve({ filename, contentType });
       }
     });
-  });
-
-const streamZipFromUrls = urls =>
-  new Promise((resolve, reject) => {
-    const zip = new JSZip();
-    urls.forEach((url, i) => {
-      const name = extractFilenameFromUrl(url) || `unnamed.file.${i}`;
-      zip.file(name, request(url));
-    });
-    try {
-      const zipPath = path.join(os.tmpdir(), 'temp.zip');
-      zip
-        .generateNodeStream({ streamFiles: true })
-        .pipe(fs.createWriteStream(zipPath))
-        .on('finish', () => {
-          const readStream = fs.createReadStream(zipPath);
-          readStream.on('close', () => {
-            fs.unlinkSync(zipPath);
-          });
-          resolve(readStream);
-        });
-    } catch (err) {
-      reject(err);
-    }
   });
 
 const ContentBackedLazyFile = (content, fileMeta) => {
@@ -154,7 +112,7 @@ const ContentBackedLazyFile = (content, fileMeta) => {
   return { meta, readStream };
 };
 
-const SingleUrlBackedLazyFile = (url, fileMeta) => {
+const UrlBackedLazyFile = (url, fileMeta) => {
   const hasCompleteMeta = fileMeta.filename && fileMeta.contentType;
 
   let cachedFileMeta;
@@ -181,28 +139,14 @@ const SingleUrlBackedLazyFile = (url, fileMeta) => {
   return { meta, readStream };
 };
 
-const MultipleUrlsBackedLazyFile = (urls, fileMeta) => {
-  const meta = async () => {
-    return {
-      filename: fileMeta.filename || formatFilenameFromUrls(urls),
-      contentType: fileMeta.contentType || 'application/zip'
-    };
-  };
-  const readStream = async () => await streamZipFromUrls(urls);
-  return { meta, readStream };
-};
-
 const LazyFile = (urlOrContent, fileMeta, options) => {
   fileMeta = fileMeta || {};
   options = options || {};
 
-  const urls = options.dontLoadUrls ? [] : splitUrls(urlOrContent);
-  if (urls.length === 0) {
+  if (options.dontLoadUrl || !isUrl(urlOrContent)) {
     return ContentBackedLazyFile(urlOrContent, fileMeta);
-  } else if (urls.length === 1) {
-    return SingleUrlBackedLazyFile(urls[0], fileMeta);
   }
-  return MultipleUrlsBackedLazyFile(urls, fileMeta);
+  return UrlBackedLazyFile(urlOrContent, fileMeta);
 };
 
 module.exports = {

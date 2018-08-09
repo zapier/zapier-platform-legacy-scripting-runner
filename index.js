@@ -39,11 +39,11 @@ const addFilesToRequestBodyFromPreResult = async (request, event) => {
       const [filename, newFileValue, contentType] = file;
       // If pre_write changes the hydrate URL, file[1], we take it as a
       // string content even if it looks like a URL
-      const loadUrls = newFileValue === event.originalFiles[k][1];
+      const loadUrl = newFileValue === event.originalFiles[k][1];
       lazyFile = LazyFile(
         newFileValue,
         { filename, contentType },
-        { dontLoadUrls: !loadUrls }
+        { dontLoadUrl: !loadUrl }
       );
     } else if (typeof file === 'string') {
       lazyFile = LazyFile(file);
