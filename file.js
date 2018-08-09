@@ -10,9 +10,6 @@ const JSZip = require('jszip');
 const request = require('request');
 
 const markFileFieldsInBundle = (bundle, inputFields) => {
-  // This doesn't include custom 'file' fields as such info isn't available
-  // here in the bundle.
-  // TODO: Find a way to fix?
   const fileFieldKeys = inputFields
     .filter(field => field.type === 'file')
     .map(field => field.key);
