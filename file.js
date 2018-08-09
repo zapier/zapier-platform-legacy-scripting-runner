@@ -137,58 +137,72 @@ const streamZipFromUrls = urls =>
     }
   });
 
-const LazyFile = (urlOrContent, fileMeta, options) => {
-  fileMeta = fileMeta || {};
-  options = options || {};
+const ContentBackedLazyFile = (content, fileMeta) => {
+  const meta = async () => {
+    return {
+      filename: fileMeta.filename || extractFilenameFromContent(content),
+      contentType: fileMeta.contentType || 'text/plain'
+    };
+  };
+
+  // readStream is only used by FormData.append(). And FormData.append(key,
+  // data, options) accepts a string for its `data` argument, so instead of
+  // trying to make the string a readable stream, we can just return the
+  // string here.
+  const readStream = async () => content;
+
+  return { meta, readStream };
+};
+
+const SingleUrlBackedLazyFile = (url, fileMeta) => {
   const hasCompleteMeta = fileMeta.filename && fileMeta.contentType;
 
-  let meta, readStream;
-
   let cachedFileMeta;
-  const fetchFileMetaWithCache = async url => {
+  const fetchFileMetaWithCache = async fileUrl => {
+    // Cache fileMeta so when we call LazyFile.meta, we don't need to send an
+    // HTTP request again
     if (cachedFileMeta) {
       return cachedFileMeta;
     }
-    const fm = await fetchFileMeta(url);
+    const fm = await fetchFileMeta(fileUrl);
     cachedFileMeta = fm;
     return fm;
   };
 
-  const urls = options.dontLoadUrls ? [] : splitUrls(urlOrContent);
-  if (urls.length === 0) {
-    const content = urlOrContent;
-    meta = async () => {
-      return {
-        filename: fileMeta.filename || extractFilenameFromContent(content),
-        contentType: fileMeta.contentType || 'text/plain'
-      };
-    };
-    // readStream is only used by FormData.append(). And FormData.append(key,
-    // data, options) accepts a string for its `data` argument, so instead of
-    // trying to make the string a readable stream, we can just return the
-    // string here.
-    readStream = async () => content;
-  } else if (urls.length === 1) {
-    const url = urls[0];
-    meta = async () => {
-      if (hasCompleteMeta) {
-        return fileMeta;
-      }
-      const fm = fetchFileMetaWithCache(url);
-      return _.extend(fm, fileMeta);
-    };
-    readStream = async () => request(url);
-  } else {
-    meta = async () => {
-      return {
-        filename: fileMeta.filename || formatFilenameFromUrls(urls),
-        contentType: fileMeta.contentType || 'application/zip'
-      };
-    };
-    readStream = async () => await streamZipFromUrls(urls);
-  }
+  const meta = async () => {
+    if (hasCompleteMeta) {
+      return fileMeta;
+    }
+    const fm = fetchFileMetaWithCache(url);
+    return _.extend(fm, fileMeta);
+  };
+  const readStream = async () => request(url);
 
   return { meta, readStream };
+};
+
+const MultipleUrlsBackedLazyFile = (urls, fileMeta) => {
+  const meta = async () => {
+    return {
+      filename: fileMeta.filename || formatFilenameFromUrls(urls),
+      contentType: fileMeta.contentType || 'application/zip'
+    };
+  };
+  const readStream = async () => await streamZipFromUrls(urls);
+  return { meta, readStream };
+};
+
+const LazyFile = (urlOrContent, fileMeta, options) => {
+  fileMeta = fileMeta || {};
+  options = options || {};
+
+  const urls = options.dontLoadUrls ? [] : splitUrls(urlOrContent);
+  if (urls.length === 0) {
+    return ContentBackedLazyFile(urlOrContent, fileMeta);
+  } else if (urls.length === 1) {
+    return SingleUrlBackedLazyFile(urls[0], fileMeta);
+  }
+  return MultipleUrlsBackedLazyFile(urls, fileMeta);
 };
 
 module.exports = {
