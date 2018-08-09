@@ -25,7 +25,9 @@ const FIELD_TYPE_CONVERT_MAP = {
   unicode: 'string'
 };
 
-const addFilesToRequestBody = async (request, event) => {
+// Prepares request body from results.files and assign it to result.body. This
+// accepts the request object returned by a KEY_pre_ method.
+const addFilesToRequestBodyFromPreResult = async (request, event) => {
   const formData = new FormData();
   formData.append('data', request.data || '{}');
 
@@ -65,11 +67,42 @@ const addFilesToRequestBody = async (request, event) => {
   return request;
 };
 
+// Reformats request.body into multipart/form-data for file upload. This accepts
+// the CLI's bundle.request object.
+const addFilesToRequestBodyFromBody = async (request, bundle) => {
+  const data = {};
+  const fileFieldKeys = [];
+  const lazyFiles = [];
+
+  _.each(request.body, (v, k) => {
+    if (!isFileField(k, bundle)) {
+      data[k] = v;
+    } else if (typeof v === 'string') {
+      fileFieldKeys.push(k);
+      lazyFiles.push(LazyFile(v));
+    }
+  });
+
+  const fileMetas = await Promise.all(lazyFiles.map(f => f.meta()));
+  const fileStreams = await Promise.all(lazyFiles.map(f => f.readStream()));
+
+  const formData = new FormData();
+  formData.append('data', JSON.stringify(data));
+
+  _.zip(fileFieldKeys, fileMetas, fileStreams).forEach(
+    ([k, meta, fileStream]) => {
+      formData.append(k, fileStream, meta);
+    }
+  );
+
+  request.body = formData;
+  return request;
+};
+
 const parseFinalResult = async (result, event) => {
   if (event.name.endsWith('.pre')) {
     if (!_.isEmpty(result.files)) {
-      // Prepare request body from results.files and assign it to result.body
-      return addFilesToRequestBody(result, event);
+      return addFilesToRequestBodyFromPreResult(result, event);
     }
 
     // Old request was .data (string), new is .body (object), which matters for _pre
@@ -359,36 +392,9 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
         : bundle.request;
 
       const isBodyStream = typeof _.get(request, 'body.pipe') === 'function';
-
       if (hasFileFields(bundle) && !isBodyStream) {
-        const data = {};
-        const fileFieldKeys = [];
-        const lazyFiles = [];
-
-        _.each(request.body, (v, k) => {
-          if (!isFileField(k, bundle)) {
-            data[k] = v;
-          } else if (typeof v === 'string') {
-            fileFieldKeys.push(k);
-            lazyFiles.push(LazyFile(v));
-          }
-        });
-
-        const fileMetas = await Promise.all(lazyFiles.map(f => f.meta()));
-        const fileStreams = await Promise.all(
-          lazyFiles.map(f => f.readStream())
-        );
-
-        const formData = new FormData();
-        formData.append('data', JSON.stringify(data));
-
-        _.zip(fileFieldKeys, fileMetas, fileStreams).forEach(
-          ([k, meta, fileStream]) => {
-            formData.append(k, fileStream, meta);
-          }
-        );
-
-        request.body = formData;
+        // Runs only when there's no KEY_pre_ method
+        await addFilesToRequestBodyFromBody(request, bundle);
       }
 
       const response = await zobj.request(request);
