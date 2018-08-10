@@ -25,84 +25,87 @@ const FIELD_TYPE_CONVERT_MAP = {
   unicode: 'string'
 };
 
-// Prepares request body from results.files and assign it to result.body. This
-// accepts the request object returned by a KEY_pre_ method.
-const addFilesToRequestBodyFromPreResult = async (request, event) => {
-  const formData = new FormData();
-  formData.append('data', request.data || '{}');
-
-  const fileFieldKeys = Object.keys(request.files);
-  const lazyFiles = fileFieldKeys.map(k => {
-    const file = request.files[k];
-    let lazyFile;
-    if (Array.isArray(file) && file.length === 3) {
-      const [filename, newFileValue, contentType] = file;
-      // If pre_write changes the hydrate URL, file[1], we take it as a
-      // string content even if it looks like a URL
-      const loadUrl = newFileValue === event.originalFiles[k][1];
-      lazyFile = LazyFile(
-        newFileValue,
-        { filename, contentType },
-        { dontLoadUrl: !loadUrl }
-      );
-    } else if (typeof file === 'string') {
-      lazyFile = LazyFile(file);
+// Makes a multipart/form-data request body that can be set to request.body for
+// node-fetch.
+const makeMultipartBody = async (data, lazyFilesObject) => {
+  const form = new FormData();
+  if (data) {
+    if (typeof data !== 'string') {
+      data = JSON.stringify(data);
     }
-    return lazyFile;
-  });
-  const fileMetas = await Promise.all(lazyFiles.map(f => f && f.meta()));
-  const fileStreams = await Promise.all(
-    lazyFiles.map(f => f && f.readStream())
-  );
+    form.append('data', data);
+  }
+
+  const fileFieldKeys = Object.keys(lazyFilesObject);
+  const lazyFiles = Object.values(lazyFilesObject);
+
+  const fileMetas = await Promise.all(lazyFiles.map(f => f.meta()));
+  const fileStreams = await Promise.all(lazyFiles.map(f => f.readStream()));
 
   _.zip(fileFieldKeys, fileMetas, fileStreams).forEach(
     ([k, meta, fileStream]) => {
-      if (meta && fileStream) {
-        formData.append(k, fileStream, meta);
-      }
+      form.append(k, fileStream, meta);
     }
   );
 
-  request.body = formData;
+  return form;
+};
+
+// Prepares request body from results.files and assign it to result.body. This
+// accepts the request object returned by a KEY_pre_ method.
+const addFilesToRequestBodyFromPreResult = async (request, event) => {
+  const lazyFiles = _.reduce(
+    request.files,
+    (result, file, k) => {
+      let lazyFile;
+      if (Array.isArray(file) && file.length === 3) {
+        const [filename, newFileValue, contentType] = file;
+        // If pre_write changes the hydrate URL, file[1], we take it as a
+        // string content even if it looks like a URL
+        const loadUrl = newFileValue === event.originalFiles[k][1];
+        lazyFile = LazyFile(
+          newFileValue,
+          { filename, contentType },
+          { dontLoadUrl: !loadUrl }
+        );
+      } else if (typeof file === 'string') {
+        lazyFile = LazyFile(file);
+      }
+
+      if (lazyFile) {
+        result[k] = lazyFile;
+      }
+      return result;
+    },
+    {}
+  );
+
+  request.body = await makeMultipartBody(request.data || '{}', lazyFiles);
   return request;
 };
 
-// Reformats request.body into multipart/form-data for file upload. This accepts
-// the CLI's bundle.request object.
+// Reformats request.body into multipart/form-data for file upload. This
+// accepts the CLI's bundle.request object.
 const addFilesToRequestBodyFromBody = async (request, bundle) => {
   const data = {};
-  const fileFieldKeys = [];
-  const lazyFiles = [];
+  const lazyFiles = {};
 
   _.each(request.body, (v, k) => {
     if (!isFileField(k, bundle)) {
       data[k] = v;
     } else if (typeof v === 'string') {
-      fileFieldKeys.push(k);
-      lazyFiles.push(LazyFile(v));
+      lazyFiles[k] = LazyFile(v);
     }
   });
 
-  const fileMetas = await Promise.all(lazyFiles.map(f => f.meta()));
-  const fileStreams = await Promise.all(lazyFiles.map(f => f.readStream()));
-
-  const formData = new FormData();
-  formData.append('data', JSON.stringify(data));
-
-  _.zip(fileFieldKeys, fileMetas, fileStreams).forEach(
-    ([k, meta, fileStream]) => {
-      formData.append(k, fileStream, meta);
-    }
-  );
-
-  request.body = formData;
+  request.body = await makeMultipartBody(data, lazyFiles);
   return request;
 };
 
 const parseFinalResult = async (result, event) => {
   if (event.name.endsWith('.pre')) {
     if (!_.isEmpty(result.files)) {
-      return addFilesToRequestBodyFromPreResult(result, event);
+      return await addFilesToRequestBodyFromPreResult(result, event);
     }
 
     // Old request was .data (string), new is .body (object), which matters for _pre
