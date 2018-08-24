@@ -315,6 +315,37 @@ describe('Integration Test', () => {
         should.equal(fields[5].key, 'spin');
       });
     });
+
+    it('z.dehydrateFile', () => {
+      const appDef = _.cloneDeep(appDefinition);
+      appDef.legacyScriptingSource = appDef.legacyScriptingSource.replace(
+        'movie_post_poll_file_dehydration',
+        'movie_post_poll'
+      );
+      const _appDefWithAuth = withAuth(appDef, apiKeyAuth);
+      const _compiledApp = schemaTools.prepareApp(_appDefWithAuth);
+      const _app = createApp(_appDefWithAuth);
+
+      const input = createTestInput(
+        _compiledApp,
+        'triggers.movie.operation.perform'
+      );
+      input.bundle.authData = { api_key: 'secret' };
+      return _app(input).then(output => {
+        const movies = output.results;
+        movies.length.should.greaterThan(1);
+        movies.forEach(movie => {
+          movie.trailer.should.startWith('hydrate|||');
+          movie.trailer.should.endWith('|||hydrate');
+
+          const trailer = JSON.parse(movie.trailer.split('|||')[1]);
+          should.equal(trailer.type, 'method');
+          should.equal(trailer.method, 'hydrators._legacyHydrateFile');
+          should.equal(trailer.bundle.url, `${AUTH_JSON_SERVER_URL}/movies`);
+          should.deepEqual(trailer.bundle.request.params, { id: movie.id });
+        });
+      });
+    });
   });
 
   describe('hook trigger', () => {
