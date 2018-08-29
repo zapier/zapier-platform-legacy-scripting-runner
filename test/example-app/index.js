@@ -167,6 +167,17 @@ const legacyScriptingSource = `
         return bundle.request;
       },
 
+      movie_post_poll_method_dehydration: function(bundle) {
+        var movies = z.JSON.parse(bundle.response.content);
+        var url = '${AUTH_JSON_SERVER_URL}/movies';
+        movies.forEach(function(movie) {
+          movie.user = z.dehydrate('getUser', {
+            userId: movie.id
+          });
+        });
+        return movies;
+      },
+
       movie_post_poll_file_dehydration: function(bundle) {
         var movies = z.JSON.parse(bundle.response.content);
         var url = '${AUTH_JSON_SERVER_URL}/movies';

@@ -316,6 +316,36 @@ describe('Integration Test', () => {
       });
     });
 
+    it('z.dehydrate', () => {
+      const appDef = _.cloneDeep(appDefinition);
+      appDef.legacyScriptingSource = appDef.legacyScriptingSource.replace(
+        'movie_post_poll_method_dehydration',
+        'movie_post_poll'
+      );
+      const _appDefWithAuth = withAuth(appDef, apiKeyAuth);
+      const _compiledApp = schemaTools.prepareApp(_appDefWithAuth);
+      const _app = createApp(_appDefWithAuth);
+
+      const input = createTestInput(
+        _compiledApp,
+        'triggers.movie.operation.perform'
+      );
+      input.bundle.authData = { api_key: 'secret' };
+      return _app(input).then(output => {
+        const movies = output.results;
+        movies.length.should.greaterThan(1);
+        movies.forEach(movie => {
+          movie.user.should.startWith('hydrate|||');
+          movie.user.should.endWith('|||hydrate');
+
+          const user = JSON.parse(movie.user.split('|||')[1]);
+          should.equal(user.type, 'method');
+          should.equal(user.method, 'hydrators._legacyHydrateMethod');
+          should.equal(user.bundle.userId, movie.id);
+        });
+      });
+    });
+
     it('z.dehydrateFile', () => {
       const appDef = _.cloneDeep(appDefinition);
       appDef.legacyScriptingSource = appDef.legacyScriptingSource.replace(
