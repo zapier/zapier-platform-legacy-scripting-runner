@@ -136,6 +136,33 @@ const z = {
     return `:censored:${length}:${result.substr(0, 10)}:`;
   },
 
+  dehydrate: (method, bundle) => {
+    method = method || undefined;
+    bundle = bundle || {};
+
+    if (typeof method !== 'string') {
+      throw new exceptions.DehydrateException(
+        'The provided method name is not a string!'
+      );
+    }
+
+    // The original hydrator that does the actual work (hydrators._legacyHydrateMethod
+    // is just a proxy that calls the original). Expecting an existing method name in
+    // Zap object. Put it in bundle so legacy-scripting-runner knows where to locate and
+    // call the hydrator later.
+    bundle._originalHydrateMethodName = method;
+
+    return (
+      'hydrate|||' +
+      JSON.stringify({
+        type: 'method',
+        method: 'hydrators._legacyHydrateMethod',
+        bundle // will be available as bundle.inputData actually
+      }) +
+      '|||hydrate'
+    );
+  },
+
   dehydrateFile: (url, requestOptions, meta) => {
     url = url || undefined;
     requestOptions = requestOptions || undefined;
@@ -158,6 +185,8 @@ const z = {
       JSON.stringify({
         type: 'method',
         method: 'hydrators._legacyHydrateFile',
+
+        // will be available as bundle.inputData actually
         bundle: {
           url,
           request: requestOptions,

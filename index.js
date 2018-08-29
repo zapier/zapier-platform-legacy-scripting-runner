@@ -261,7 +261,12 @@ const createEventNameToMethodMapping = key => {
     'search.input.post': `${key}_post_custom_search_fields`,
     'search.output': `${key}_custom_search_result_fields`,
     'search.output.pre': `${key}_pre_custom_search_result_fields`,
-    'search.output.post': `${key}_post_custom_search_result_fields`
+    'search.output.post': `${key}_post_custom_search_result_fields`,
+
+    //
+    // Hydration
+    //
+    'hydrate.method': key
   };
 };
 
@@ -735,6 +740,12 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
     return runCustomFields(bundle, key, 'search.output', url);
   };
 
+  const runHydrateMethod = bundle => {
+    const methodName = bundle.inputData._originalHydrateMethodName;
+    delete bundle.inputData._originalHydrateMethodName;
+    return runEvent({ name: 'hydrate.method', key: methodName }, zobj, bundle);
+  };
+
   // core exposes this function as z.legacyScripting.run() method that we can
   // run legacy scripting easily like z.legacyScripting.run(bundle, 'trigger', 'KEY')
   // in CLI to simulate how WB backend runs legacy scripting.
@@ -786,6 +797,8 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
           return runSearchInputFields(bundle, key);
         case 'search.output':
           return runSearchOutputFields(bundle, key);
+        case 'hydrate.method':
+          return runHydrateMethod(bundle);
       }
       throw new Error(`unrecognizable typeOf '${typeOf}'`);
     });
