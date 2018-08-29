@@ -735,6 +735,15 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
     return runCustomFields(bundle, key, 'search.output', url);
   };
 
+  const runHydrateFile = bundle => {
+    const meta = bundle.inputData.meta || {};
+    const requestOptions = bundle.inputData.request || {};
+    requestOptions.url = bundle.inputData.url || requestOptions.url;
+    requestOptions.raw = true;
+    const filePromise = zobj.request(requestOptions);
+    return zobj.stashFile(filePromise, meta.length, meta.name);
+  };
+
   // core exposes this function as z.legacyScripting.run() method that we can
   // run legacy scripting easily like z.legacyScripting.run(bundle, 'trigger', 'KEY')
   // in CLI to simulate how WB backend runs legacy scripting.
@@ -786,6 +795,8 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
           return runSearchInputFields(bundle, key);
         case 'search.output':
           return runSearchOutputFields(bundle, key);
+        case 'hydrate.file':
+          return runHydrateFile(bundle);
       }
       throw new Error(`unrecognizable typeOf '${typeOf}'`);
     });

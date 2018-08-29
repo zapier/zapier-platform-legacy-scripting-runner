@@ -158,6 +158,8 @@ const z = {
       JSON.stringify({
         type: 'method',
         method: 'hydrators._legacyHydrateFile',
+
+        // will be available as bundle.inputData actually
         bundle: {
           url,
           request: requestOptions,
