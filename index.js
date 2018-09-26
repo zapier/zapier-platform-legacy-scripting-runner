@@ -151,7 +151,7 @@ const replaceCurliesInRequest = (request, bundle) => {
   return cleaner.recurseReplaceBank(request, bank);
 };
 
-const compileLegacyScriptingSource = source => {
+const compileLegacyScriptingSource = (source, zcli) => {
   const { DOMParser, XMLSerializer } = require('xmldom');
   const {
     ErrorException,
@@ -189,7 +189,7 @@ const compileLegacyScriptingSource = source => {
     XMLSerializer,
     require('./atob'),
     require('./btoa'),
-    require('./z'),
+    require('./zfactory')(zcli),
     require('./$'),
     ErrorException,
     HaltedException,
@@ -265,7 +265,7 @@ const createEventNameToMethodMapping = key => {
   };
 };
 
-const legacyScriptingRunner = (Zap, zobj, app) => {
+const legacyScriptingRunner = (Zap, zcli, app) => {
   if (typeof Zap === 'string') {
     Zap = compileLegacyScriptingSource(Zap);
   }
@@ -387,11 +387,11 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
       }
 
       // Running "full" scripting method like KEY_poll
-      result = await runEvent({ key, name: fullEventName }, zobj, bundle);
+      result = await runEvent({ key, name: fullEventName }, zcli, bundle);
     } else {
       const preMethod = preMethodName ? Zap[preMethodName] : null;
       const request = preMethod
-        ? await runEvent({ key, name: preEventName }, zobj, bundle)
+        ? await runEvent({ key, name: preEventName }, zcli, bundle)
         : bundle.request;
 
       const isBodyStream = typeof _.get(request, 'body.pipe') === 'function';
@@ -400,7 +400,7 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
         await addFilesToRequestBodyFromBody(request, bundle);
       }
 
-      const response = await zobj.request(request);
+      const response = await zcli.request(request);
 
       if (options.checkResponseStatus) {
         response.throwForStatus();
@@ -412,8 +412,8 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
 
       const postMethod = postMethodName ? Zap[postMethodName] : null;
       result = postMethod
-        ? await runEvent({ key, name: postEventName, response }, zobj, bundle)
-        : zobj.JSON.parse(response.content);
+        ? await runEvent({ key, name: postEventName, response }, zcli, bundle)
+        : zcli.JSON.parse(response.content);
     }
 
     if (options.ensureArray) {
@@ -505,7 +505,7 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
   const runCatchHook = (bundle, key) => {
     const methodName = `${key}_catch_hook`;
     const promise = Zap[methodName]
-      ? runEvent({ key, name: 'trigger.hook' }, zobj, bundle)
+      ? runEvent({ key, name: 'trigger.hook' }, zcli, bundle)
       : Promise.resolve(bundle.cleanedRequest);
     return promise.then(result => {
       if (!Array.isArray(result)) {
@@ -740,8 +740,8 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
     const requestOptions = bundle.inputData.request || {};
     requestOptions.url = bundle.inputData.url || requestOptions.url;
     requestOptions.raw = true;
-    const filePromise = zobj.request(requestOptions);
-    return zobj.stashFile(filePromise, meta.length, meta.name);
+    const filePromise = zcli.request(requestOptions);
+    return zcli.stashFile(filePromise, meta.length, meta.name);
   };
 
   // core exposes this function as z.legacyScripting.run() method that we can
@@ -757,16 +757,16 @@ const legacyScriptingRunner = (Zap, zobj, app) => {
     return applyBeforeMiddleware(
       app.beforeRequest,
       initRequest,
-      zobj,
+      zcli,
       bundle
     ).then(preparedRequest => {
       bundle.request = preparedRequest;
 
       switch (typeOf) {
         case 'auth.session':
-          return runEvent({ name: 'auth.session' }, zobj, bundle);
+          return runEvent({ name: 'auth.session' }, zcli, bundle);
         case 'auth.connectionLabel':
-          return runEvent({ name: 'auth.connectionLabel' }, zobj, bundle);
+          return runEvent({ name: 'auth.connectionLabel' }, zcli, bundle);
         case 'auth.oauth2.token':
           return runOAuth2GetAccessToken(bundle);
         case 'auth.oauth2.refresh':

@@ -65,38 +65,36 @@ const convertResponse = response => {
 
 const syncRequest = deasync(request);
 
-const z = {
-  AWS: () => {
+const zfactory = zcli => {
+  const AWS = () => {
     // Direct require breaks the build as the module isn't found by browserify
     const moduleName = 'aws-sdk';
     return require(moduleName);
-  },
+  };
 
-  JSON: {
-    parse: str => {
-      try {
-        return JSON.parse(str);
-      } catch (err) {
-        let preview = str;
+  const jsonParse = str => {
+    try {
+      return JSON.parse(str);
+    } catch (err) {
+      let preview = str;
 
-        if (str && str.length > 100) {
-          preview = str.substr(0, 100);
-        }
-
-        throw new Error(`Error parsing response. We got: "${preview}"`);
+      if (str && str.length > 100) {
+        preview = str.substr(0, 100);
       }
-    },
 
-    stringify: str => {
-      try {
-        return JSON.stringify(str);
-      } catch (err) {
-        throw new Error(err.message);
-      }
+      throw new Error(`Error parsing response. We got: "${preview}"`);
     }
-  },
+  };
 
-  request: (bundleRequest, callback) => {
+  const jsonStringify = obj => {
+    try {
+      return JSON.stringify(obj);
+    } catch (err) {
+      throw new Error(err.message);
+    }
+  };
+
+  const requestMethod = (bundleRequest, callback) => {
     const options = convertBundleRequest(bundleRequest);
 
     if (_.isFunction(callback)) {
@@ -107,23 +105,28 @@ const z = {
 
     const response = syncRequest(options);
     return convertResponse(response);
-  },
+  };
 
-  hash: (algorithm, string, encoding = 'hex', inputEncoding = 'binary') => {
+  const hash = (
+    algorithm,
+    string,
+    encoding = 'hex',
+    inputEncoding = 'binary'
+  ) => {
     const hasher = crypto.createHash(algorithm);
     hasher.update(string, inputEncoding);
 
     return hasher.digest(encoding);
-  },
+  };
 
-  hmac: (algorithm, key, string, encoding = 'hex') => {
+  const hmac = (algorithm, key, string, encoding = 'hex') => {
     const hasher = crypto.createHash(algorithm, key);
     hasher.update(string);
 
     return hasher.digest(encoding);
-  },
+  };
 
-  snipify: string => {
+  const snipify = string => {
     const SALT = process.env.SECRET_SALT || 'doesntmatterreally';
     if (!_.isString(string)) {
       return null;
@@ -131,12 +134,12 @@ const z = {
 
     const length = string.length;
     string += SALT;
-    const result = z.hash('sha256', string);
+    const result = hash('sha256', string);
 
     return `:censored:${length}:${result.substr(0, 10)}:`;
-  },
+  };
 
-  dehydrateFile: (url, requestOptions, meta) => {
+  const dehydrateFile = (url, requestOptions, meta) => {
     url = url || undefined;
     requestOptions = requestOptions || undefined;
     meta = meta || undefined;
@@ -168,7 +171,20 @@ const z = {
       }) +
       '|||hydrate'
     );
-  }
+  };
+
+  return {
+    AWS,
+    JSON: {
+      parse: jsonParse,
+      stringify: jsonStringify
+    },
+    request: requestMethod,
+    hash,
+    hmac,
+    snipify,
+    dehydrateFile
+  };
 };
 
-module.exports = z;
+module.exports = zfactory;
