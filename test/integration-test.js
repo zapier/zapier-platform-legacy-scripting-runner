@@ -338,11 +338,16 @@ describe('Integration Test', () => {
           movie.trailer.should.startWith('hydrate|||');
           movie.trailer.should.endWith('|||hydrate');
 
-          const trailer = JSON.parse(movie.trailer.split('|||')[1]);
-          should.equal(trailer.type, 'method');
-          should.equal(trailer.method, 'hydrators._legacyHydrateFile');
-          should.equal(trailer.bundle.url, `${AUTH_JSON_SERVER_URL}/movies`);
-          should.deepEqual(trailer.bundle.request.params, { id: movie.id });
+          const payload = JSON.parse(movie.trailer.split('|||')[1]);
+          should.equal(payload.type, 'file');
+          should.equal(payload.method, 'hydrators.legacyFileHydrator');
+          should.equal(
+            payload.bundle.url,
+            'https://auth-json-server.zapier.ninja/movies'
+          );
+          should.equal(payload.bundle.request.params.id, movie.id);
+          should.equal(payload.bundle.meta.name, `movie ${movie.id}.json`);
+          should.equal(payload.bundle.meta.length, 1234);
         });
       });
     });

@@ -174,10 +174,14 @@ const legacyScriptingSource = `
           // Just a JSON file, not a real trailer
           movie.trailer = z.dehydrateFile(url, {
             params: { id: movie.id }
+          }, {
+            name: 'movie ' + movie.id + '.json',
+            length: 1234
           });
           return movie;
         });
       },
+
 
       /*
        * Create/Action
@@ -731,6 +735,11 @@ const App = {
   },
   searches: {
     [MovieSearch.key]: MovieSearch
+  },
+  hydrators: {
+    legacyFileHydrator: {
+      source: "return z.legacyScripting.run(bundle, 'hydrate.file');"
+    }
   },
   legacyProperties: {
     subscribeUrl: 'http://zapier-httpbin.herokuapp.com/post',

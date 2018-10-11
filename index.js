@@ -2,6 +2,7 @@ const _ = require('lodash');
 const FormData = require('form-data');
 
 const cleaner = require('zapier-platform-core/src/tools/cleaner');
+const requestInternal = require('zapier-platform-core/src/tools/request-client-internal');
 
 const bundleConverter = require('./bundle');
 const {
@@ -151,7 +152,7 @@ const replaceCurliesInRequest = (request, bundle) => {
   return cleaner.recurseReplaceBank(request, bank);
 };
 
-const compileLegacyScriptingSource = (source, zcli) => {
+const compileLegacyScriptingSource = (source, zcli, app) => {
   const { DOMParser, XMLSerializer } = require('xmldom');
   const {
     ErrorException,
@@ -189,7 +190,7 @@ const compileLegacyScriptingSource = (source, zcli) => {
     XMLSerializer,
     require('./atob'),
     require('./btoa'),
-    require('./zfactory')(zcli),
+    require('./zfactory')(zcli, app),
     require('./$'),
     ErrorException,
     HaltedException,
@@ -267,7 +268,7 @@ const createEventNameToMethodMapping = key => {
 
 const legacyScriptingRunner = (Zap, zcli, app) => {
   if (typeof Zap === 'string') {
-    Zap = compileLegacyScriptingSource(Zap);
+    Zap = compileLegacyScriptingSource(Zap, zcli, app);
   }
 
   // Does string replacement ala WB, using bundle and a potential result object
@@ -738,9 +739,15 @@ const legacyScriptingRunner = (Zap, zcli, app) => {
   const runHydrateFile = bundle => {
     const meta = bundle.inputData.meta || {};
     const requestOptions = bundle.inputData.request || {};
+
+    // Legacy z.dehydrateFile(url, request, meta) behavior: if request argument is
+    // provided, we don't run http middlewares by using internal request client.
+    const request = _.isEmpty(requestOptions) ? zcli.request : requestInternal;
+
     requestOptions.url = bundle.inputData.url || requestOptions.url;
     requestOptions.raw = true;
-    const filePromise = zcli.request(requestOptions);
+
+    const filePromise = request(requestOptions);
     return zcli.stashFile(filePromise, meta.length, meta.name);
   };
 

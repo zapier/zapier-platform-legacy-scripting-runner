@@ -4,8 +4,6 @@ const _ = require('lodash');
 const deasync = require('deasync');
 const request = require('request');
 
-const exceptions = require('./exceptions');
-
 // Converts WB `bundle.request` format to something `request` can use
 const convertBundleRequest = bundleOrBundleRequest => {
   bundleOrBundleRequest = _.extend({}, bundleOrBundleRequest);
@@ -65,7 +63,7 @@ const convertResponse = response => {
 
 const syncRequest = deasync(request);
 
-const zfactory = zcli => {
+const zfactory = (zcli, app) => {
   const AWS = () => {
     // Direct require breaks the build as the module isn't found by browserify
     const moduleName = 'aws-sdk';
@@ -140,37 +138,11 @@ const zfactory = zcli => {
   };
 
   const dehydrateFile = (url, requestOptions, meta) => {
-    url = url || undefined;
-    requestOptions = requestOptions || undefined;
-    meta = meta || undefined;
-
-    if (!url && !request) {
-      throw new exceptions.DehydrateException(
-        'You must provide either url or request arguments!'
-      );
-    }
-
-    if (url && typeof url !== 'string') {
-      throw new exceptions.DehydrateException(
-        'The provided url is not a string!'
-      );
-    }
-
-    return (
-      'hydrate|||' +
-      JSON.stringify({
-        type: 'method',
-        method: 'hydrators._legacyHydrateFile',
-
-        // will be available as bundle.inputData actually
-        bundle: {
-          url,
-          request: requestOptions,
-          meta
-        }
-      }) +
-      '|||hydrate'
-    );
+    return zcli.dehydrateFile(app.hydrators.legacyFileHydrator, {
+      url,
+      request: requestOptions,
+      meta
+    });
   };
 
   return {
