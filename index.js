@@ -1,8 +1,25 @@
 const _ = require('lodash');
 const FormData = require('form-data');
 
+const addQueryParams = require('zapier-platform-core/src/http-middlewares/before/add-query-params');
 const cleaner = require('zapier-platform-core/src/tools/cleaner');
-const requestInternal = require('zapier-platform-core/src/tools/request-client-internal');
+const createRequestClient = require('zapier-platform-core/src/tools/create-request-client');
+
+let authlessRequestClient;
+const createAuthlessRequestClient = () => {
+  const options = {
+    skipDefaultMiddle: true
+  };
+  const httpBefores = [addQueryParams];
+  return createRequestClient(httpBefores, undefined, options);
+};
+
+const getOrCreateAuthlessRequestClient = () => {
+  if (!authlessRequestClient) {
+    authlessRequestClient = createAuthlessRequestClient();
+  }
+  return authlessRequestClient;
+};
 
 const bundleConverter = require('./bundle');
 const {
@@ -742,7 +759,9 @@ const legacyScriptingRunner = (Zap, zcli, app) => {
 
     // Legacy z.dehydrateFile(url, request, meta) behavior: if request argument is
     // provided, we don't run http middlewares by using internal request client.
-    const request = _.isEmpty(requestOptions) ? zcli.request : requestInternal;
+    const request = _.isEmpty(requestOptions)
+      ? zcli.request
+      : getOrCreateAuthlessRequestClient();
 
     requestOptions.url = bundle.inputData.url || requestOptions.url;
     requestOptions.raw = true;
