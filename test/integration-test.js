@@ -1501,6 +1501,7 @@ describe('Integration Test', () => {
           const buffer = await response.buffer();
           const content = buffer.toString('utf8');
           return {
+            response,
             content: JSON.parse(content),
             knownLength,
             filename,
@@ -1528,6 +1529,7 @@ describe('Integration Test', () => {
         };
         return app(input).then(output => {
           const {
+            response,
             content,
             knownLength,
             filename,
@@ -1537,6 +1539,10 @@ describe('Integration Test', () => {
           should.not.exist(knownLength);
           should.not.exist(filename);
           should.not.exist(contentType);
+
+          // Make sure prepareResponse middleware was run
+          response.getHeader.should.be.Function();
+          should.equal(response.getHeader('content-type'), 'application/json');
         });
       });
 
@@ -1561,6 +1567,7 @@ describe('Integration Test', () => {
         };
         return app(input).then(output => {
           const {
+            response,
             content,
             knownLength,
             filename,
@@ -1573,6 +1580,10 @@ describe('Integration Test', () => {
           should.not.exist(knownLength);
           should.not.exist(filename);
           should.not.exist(contentType);
+
+          // Make sure prepareResponse middleware was run
+          response.getHeader.should.be.Function();
+          should.equal(response.getHeader('content-type'), 'application/json');
         });
       });
 
@@ -1601,6 +1612,7 @@ describe('Integration Test', () => {
         };
         return app(input).then(output => {
           const {
+            response,
             content,
             knownLength,
             filename,
@@ -1613,6 +1625,10 @@ describe('Integration Test', () => {
           should.equal(knownLength, 1234);
           should.equal(filename, 'hello.json');
           should.not.exist(contentType);
+
+          // Make sure prepareResponse middleware was run
+          response.getHeader.should.be.Function();
+          should.equal(response.getHeader('content-type'), 'application/json');
         });
       });
     });
