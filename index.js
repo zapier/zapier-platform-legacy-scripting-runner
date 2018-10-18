@@ -770,8 +770,8 @@ const legacyScriptingRunner = (Zap, zcli, input) => {
     const requestOptions = bundle.inputData.request || {};
 
     // Legacy z.dehydrateFile(url, request, meta) behavior: if request argument is
-    // provided, the dev is responsible for doing auth themselves, so we don't want to
-    // run app's http middlewares by using an internal request client.
+    // provided, the dev is responsible for doing auth themselves, so we use an internal
+    // request client to avoid running the app's http middlewares.
     const request = _.isEmpty(requestOptions)
       ? zcli.request
       : createInternalRequestClient(input);
