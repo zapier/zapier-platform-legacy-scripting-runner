@@ -1519,11 +1519,11 @@ describe('Integration Test', () => {
     });
 
     describe('legacyMethodHydrator', () => {
-      it('should get data if auth is correct', () => {
-        const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
-        const compiledApp = schemaTools.prepareApp(appDefWithAuth);
-        const app = createApp(appDefWithAuth);
+      const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
+      const compiledApp = schemaTools.prepareApp(appDefWithAuth);
+      const app = createApp(appDefWithAuth);
 
+      it('should get data if auth is correct', () => {
         const input = createTestInput(
           compiledApp,
           'hydrators.legacyMethodHydrator'
@@ -1543,10 +1543,6 @@ describe('Integration Test', () => {
       });
 
       it('should fail if bad auth', () => {
-        const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
-        const compiledApp = schemaTools.prepareApp(appDefWithAuth);
-        const app = createApp(appDefWithAuth);
-
         const input = createTestInput(
           compiledApp,
           'hydrators.legacyMethodHydrator'
@@ -1562,10 +1558,6 @@ describe('Integration Test', () => {
       });
 
       it('should fail if no auth', () => {
-        const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
-        const compiledApp = schemaTools.prepareApp(appDefWithAuth);
-        const app = createApp(appDefWithAuth);
-
         const input = createTestInput(
           compiledApp,
           'hydrators.legacyMethodHydrator'
