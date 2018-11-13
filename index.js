@@ -456,7 +456,6 @@ const legacyScriptingRunner = (Zap, zcli, input) => {
           return result;
         } else if (result && typeof result === 'object') {
           if (options.ensureType === 'array-wrap') {
-            // Used by auth label and auth test
             return [result];
           } else {
             // Find the first array in the response
@@ -477,6 +476,7 @@ const legacyScriptingRunner = (Zap, zcli, input) => {
           result.length > 0 &&
           _.isPlainObject(result[0])
         ) {
+          // Used by auth test and auth label
           return result[0];
         }
         throw new Error('JSON results object could not be located.');
