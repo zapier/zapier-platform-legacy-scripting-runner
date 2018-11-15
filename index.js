@@ -536,8 +536,7 @@ const legacyScriptingRunner = (Zap, zcli, input) => {
     const url = _.get(app, `triggers.${key}.operation.legacyProperties.url`);
     bundle.request.url = url;
 
-    // For auth test we wrap the resposne as an array if it isn't one
-    // const ensureArray = _.get(bundle, 'meta.test_poll') ? 'wrap' : 'first';
+    // For auth test we want to make sure we return an object instead of an array
     const ensureType = _.get(bundle, 'meta.test_poll')
       ? 'object-first'
       : 'array-first';
