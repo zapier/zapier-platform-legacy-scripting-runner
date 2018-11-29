@@ -724,63 +724,80 @@ const App = {
   },
   legacy: {
     scriptingSource: legacyScriptingSource,
+
     subscribeUrl: 'http://zapier-httpbin.herokuapp.com/post',
     unsubscribeUrl: 'https://zapier-httpbin.herokuapp.com/delete',
 
     authentication: {
-      // OAuth2
-      // Incomplete URLs on purpose to test pre_oauthv2_token
-      accessTokenUrl: `${AUTH_JSON_SERVER_URL}/oauth/access-`,
-      refreshTokenUrl: `${AUTH_JSON_SERVER_URL}/oauth/refresh-`
-
+      oauth2Config: {
+        // Incomplete URLs on purpose to test pre_oauthv2_token
+        accessTokenUrl: `${AUTH_JSON_SERVER_URL}/oauth/access-`,
+        refreshTokenUrl: `${AUTH_JSON_SERVER_URL}/oauth/refresh-`
+      }
     },
 
     triggers: {
       contact_full: {
-        // The URL misses an 's' at the end of the resource names. That is,
-        // 'output-field' where it should be 'output-fields'. Done purposely for
-        // scripting to fix it.
-        outputFieldsUrl: `${AUTH_JSON_SERVER_URL}/output-field`
+        operation: {
+          // The URL misses an 's' at the end of the resource names. That is,
+          // 'output-field' where it should be 'output-fields'. Done purposely for
+          // scripting to fix it.
+          outputFieldsUrl: `${AUTH_JSON_SERVER_URL}/output-field`
+        }
       },
       contact_post: {
-        url: `${AUTH_JSON_SERVER_URL}/users`
+        operation: {
+          url: `${AUTH_JSON_SERVER_URL}/users`
+        }
       },
       contact_hook_scripting: {
-        event: 'contact.created',
-        hookType: 'rest'
+        operation: {
+          event: 'contact.created',
+          hookType: 'rest'
+        }
       },
       test: {
-        url: `${AUTH_JSON_SERVER_URL}/me`
+        operation: {
+          url: `${AUTH_JSON_SERVER_URL}/me`
+        }
       },
       movie: {
-        url: `${AUTH_JSON_SERVER_URL}/movies`
+        operation: {
+          url: `${AUTH_JSON_SERVER_URL}/movies`
+        }
       }
     },
 
     creates: {
       movie: {
-        // These URLs miss an 's' at the end of the resource names. That is,
-        // 'movie' where it should be 'movies' and 'input-field' where it should
-        // be 'input-fields'. Done purposely for scripting to fix it.
-        url: `${AUTH_JSON_SERVER_URL}/movie`,
-        inputFieldsUrl: `${AUTH_JSON_SERVER_URL}/input-field`,
-        outputFieldsUrl: `${AUTH_JSON_SERVER_URL}/output-field`,
-        fieldsExcludedFromBody: ['title']
+        operation: {
+          // These URLs miss an 's' at the end of the resource names. That is,
+          // 'movie' where it should be 'movies' and 'input-field' where it should
+          // be 'input-fields'. Done purposely for scripting to fix it.
+          url: `${AUTH_JSON_SERVER_URL}/movie`,
+          inputFieldsUrl: `${AUTH_JSON_SERVER_URL}/input-field`,
+          outputFieldsUrl: `${AUTH_JSON_SERVER_URL}/output-field`,
+          fieldsExcludedFromBody: ['title']
+        }
       },
       file: {
-        url: `${AUTH_JSON_SERVER_URL}/upload`
+        operation: {
+          url: `${AUTH_JSON_SERVER_URL}/upload`
+        }
       }
     },
 
     searches: {
       movie: {
-        // These URLs miss an 's' at the end of the resource names. That is,
-        // 'movie' where it should be 'movies' and 'input-field' where it should
-        // be 'input-fields'. Done purposely for scripting to fix it.
-        url: `${AUTH_JSON_SERVER_URL}/movie?q={{bundle.inputData.query}}`,
-        resourceUrl: `${AUTH_JSON_SERVER_URL}/movie/{{bundle.inputData.id}}`,
-        inputFieldsUrl: `${AUTH_JSON_SERVER_URL}/input-field`,
-        outputFieldsUrl: `${AUTH_JSON_SERVER_URL}/output-field`
+        operation: {
+          // These URLs miss an 's' at the end of the resource names. That is,
+          // 'movie' where it should be 'movies' and 'input-field' where it should
+          // be 'input-fields'. Done purposely for scripting to fix it.
+          url: `${AUTH_JSON_SERVER_URL}/movie?q={{bundle.inputData.query}}`,
+          resourceUrl: `${AUTH_JSON_SERVER_URL}/movie/{{bundle.inputData.id}}`,
+          inputFieldsUrl: `${AUTH_JSON_SERVER_URL}/input-field`,
+          outputFieldsUrl: `${AUTH_JSON_SERVER_URL}/output-field`
+        }
       }
     }
   }

@@ -142,7 +142,7 @@ describe('Integration Test', () => {
         'pre_oauthv2_token',
         'dont_care'
       );
-      appDefWithAuth.legacy.authentication.accessTokenUrl += 'token';
+      appDefWithAuth.legacy.authentication.oauth2Config.accessTokenUrl += 'token';
       const compiledApp = schemaTools.prepareApp(appDefWithAuth);
       const app = createApp(appDefWithAuth);
 
@@ -289,7 +289,7 @@ describe('Integration Test', () => {
 
     it('KEY_post_custom_trigger_fields', () => {
       const appDef = _.cloneDeep(appDefinition);
-      appDef.legacy.triggers.contact_full.outputFieldsUrl += 's';
+      appDef.legacy.triggers.contact_full.operation.outputFieldsUrl += 's';
       appDef.legacy.scriptingSource = appDef.legacy.scriptingSource.replace(
         'contact_full_pre_custom_trigger_fields',
         'contact_full_pre_custom_trigger_fields_disabled'
@@ -513,7 +513,7 @@ describe('Integration Test', () => {
       // Notication REST hook should fall back what REST Hook does when the
       // hook doesn't have resource_url
       const appDef = _.cloneDeep(appDefinition);
-      appDef.legacy.triggers.contact_hook_scripting.hookType = 'notification';
+      appDef.legacy.triggers.contact_hook_scripting.operation.hookType = 'notification';
       appDef.legacy.scriptingSource = appDef.legacy.scriptingSource.replace(
         'contact_hook_scripting_catch_hook_returning_object',
         'contact_hook_scripting_catch_hook'
@@ -547,7 +547,7 @@ describe('Integration Test', () => {
 
     it('KEY_pre_hook', () => {
       const appDef = _.cloneDeep(appDefinition);
-      appDef.legacy.triggers.contact_hook_scripting.hookType = 'notification';
+      appDef.legacy.triggers.contact_hook_scripting.operation.hookType = 'notification';
       appDef.legacy.scriptingSource = appDef.legacy.scriptingSource.replace(
         'contact_hook_scripting_pre_hook_disabled',
         'contact_hook_scripting_pre_hook'
@@ -577,7 +577,7 @@ describe('Integration Test', () => {
 
     it('KEY_post_hook => object', () => {
       const appDef = _.cloneDeep(appDefinition);
-      appDef.legacy.triggers.contact_hook_scripting.hookType = 'notification';
+      appDef.legacy.triggers.contact_hook_scripting.operation.hookType = 'notification';
       appDef.legacy.scriptingSource = appDef.legacy.scriptingSource.replace(
         'contact_hook_scripting_post_hook_returning_object',
         'contact_hook_scripting_post_hook'
@@ -608,7 +608,7 @@ describe('Integration Test', () => {
 
     it('KEY_post_hook => array', () => {
       const appDef = _.cloneDeep(appDefinition);
-      appDef.legacy.triggers.contact_hook_scripting.hookType = 'notification';
+      appDef.legacy.triggers.contact_hook_scripting.operation.hookType = 'notification';
       appDef.legacy.scriptingSource = appDef.legacy.scriptingSource.replace(
         'contact_hook_scripting_post_hook_returning_array',
         'contact_hook_scripting_post_hook'
@@ -641,7 +641,7 @@ describe('Integration Test', () => {
 
     it('KEY_pre_hook & KEY_post_hook => object', () => {
       const appDef = _.cloneDeep(appDefinition);
-      appDef.legacy.triggers.contact_hook_scripting.hookType = 'notification';
+      appDef.legacy.triggers.contact_hook_scripting.operation.hookType = 'notification';
       appDef.legacy.scriptingSource = appDef.legacy.scriptingSource.replace(
         'contact_hook_scripting_pre_hook_disabled',
         'contact_hook_scripting_pre_hook'
@@ -719,7 +719,7 @@ describe('Integration Test', () => {
   describe('create', () => {
     it('scriptingless perform', () => {
       const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
-      appDefWithAuth.legacy.creates.movie.url += 's';
+      appDefWithAuth.legacy.creates.movie.operation.url += 's';
 
       const compiledApp = schemaTools.prepareApp(appDefWithAuth);
       const app = createApp(appDefWithAuth);
@@ -743,7 +743,7 @@ describe('Integration Test', () => {
 
     it('scriptingless perform, curlies in URL', () => {
       const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
-      const legacyProps = appDefWithAuth.legacy.creates.movie;
+      const legacyProps = appDefWithAuth.legacy.creates.movie.operation;
       legacyProps.url = legacyProps.url.replace(
         '/movie',
         '/{{bundle.inputData.resource_name}}'
@@ -799,7 +799,7 @@ describe('Integration Test', () => {
 
     it('KEY_post_write', () => {
       const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
-      appDefWithAuth.legacy.creates.movie.url += 's';
+      appDefWithAuth.legacy.creates.movie.operation.url += 's';
       appDefWithAuth.legacy.scriptingSource = appDefWithAuth.legacy.scriptingSource.replace(
         'movie_post_write_disabled',
         'movie_post_write'
@@ -920,7 +920,7 @@ describe('Integration Test', () => {
         'movie_write_sync',
         'movie_write'
       );
-      const legacyProps = appDefWithAuth.legacy.creates.movie;
+      const legacyProps = appDefWithAuth.legacy.creates.movie.operation;
       legacyProps.url = legacyProps.url.replace(
         '/movie',
         '/{{bundle.inputData.resource_name}}'
@@ -950,7 +950,7 @@ describe('Integration Test', () => {
 
     it('scriptingless input fields', () => {
       const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
-      appDefWithAuth.legacy.creates.movie.inputFieldsUrl += 's';
+      appDefWithAuth.legacy.creates.movie.operation.inputFieldsUrl += 's';
 
       const compiledApp = schemaTools.prepareApp(appDefWithAuth);
       const app = createApp(appDefWithAuth);
@@ -995,7 +995,7 @@ describe('Integration Test', () => {
 
     it('KEY_post_custom_action_fields', () => {
       const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
-      appDefWithAuth.legacy.creates.movie.inputFieldsUrl += 's';
+      appDefWithAuth.legacy.creates.movie.operation.inputFieldsUrl += 's';
       appDefWithAuth.legacy.scriptingSource = appDefWithAuth.legacy.scriptingSource.replace(
         'movie_post_custom_action_fields_disabled',
         'movie_post_custom_action_fields'
@@ -1078,7 +1078,7 @@ describe('Integration Test', () => {
 
     it('scriptingless output fields', () => {
       const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
-      appDefWithAuth.legacy.creates.movie.outputFieldsUrl += 's';
+      appDefWithAuth.legacy.creates.movie.operation.outputFieldsUrl += 's';
 
       const compiledApp = schemaTools.prepareApp(appDefWithAuth);
       const app = createApp(appDefWithAuth);
@@ -1129,7 +1129,7 @@ describe('Integration Test', () => {
 
     it('KEY_post_custom_action_result_fields', () => {
       const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
-      appDefWithAuth.legacy.creates.movie.outputFieldsUrl += 's';
+      appDefWithAuth.legacy.creates.movie.operation.outputFieldsUrl += 's';
       appDefWithAuth.legacy.scriptingSource = appDefWithAuth.legacy.scriptingSource.replace(
         'movie_post_custom_action_result_fields_disabled',
         'movie_post_custom_action_result_fields'
@@ -1708,7 +1708,7 @@ describe('Integration Test', () => {
   describe('search', () => {
     it('scriptingless perform', () => {
       const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
-      const legacyProps = appDefWithAuth.legacy.searches.movie;
+      const legacyProps = appDefWithAuth.legacy.searches.movie.operation;
       legacyProps.url = legacyProps.url.replace('movie?', 'movies?');
       const compiledApp = schemaTools.prepareApp(appDefWithAuth);
       const app = createApp(appDefWithAuth);
@@ -1758,7 +1758,7 @@ describe('Integration Test', () => {
 
     it('KEY_post_search', () => {
       const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
-      const legacyProps = appDefWithAuth.legacy.searches.movie;
+      const legacyProps = appDefWithAuth.legacy.searches.movie.operation;
       legacyProps.url = legacyProps.url.replace('movie?', 'movies?');
       appDefWithAuth.legacy.scriptingSource = appDefWithAuth.legacy.scriptingSource.replace(
         'movie_post_search_disabled',
@@ -1842,7 +1842,7 @@ describe('Integration Test', () => {
 
     it('scriptingless resource', () => {
       const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
-      const legacyProps = appDefWithAuth.legacy.searches.movie;
+      const legacyProps = appDefWithAuth.legacy.searches.movie.operation;
       legacyProps.resourceUrl = legacyProps.resourceUrl.replace(
         '/movie/',
         '/movies/'
@@ -1891,7 +1891,7 @@ describe('Integration Test', () => {
 
     it('KEY_post_read_resource', () => {
       const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
-      const legacyProps = appDefWithAuth.legacy.searches.movie;
+      const legacyProps = appDefWithAuth.legacy.searches.movie.operation;
       legacyProps.resourceUrl = legacyProps.resourceUrl.replace(
         '/movie/',
         '/movies/'
@@ -1977,7 +1977,7 @@ describe('Integration Test', () => {
 
     it('scriptingless input fields', () => {
       const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
-      appDefWithAuth.legacy.searches.movie.inputFieldsUrl += 's';
+      appDefWithAuth.legacy.searches.movie.operation.inputFieldsUrl += 's';
 
       const compiledApp = schemaTools.prepareApp(appDefWithAuth);
       const app = createApp(appDefWithAuth);
@@ -2020,7 +2020,7 @@ describe('Integration Test', () => {
 
     it('KEY_post_custom_search_fields', () => {
       const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
-      appDefWithAuth.legacy.searches.movie.inputFieldsUrl += 's';
+      appDefWithAuth.legacy.searches.movie.operation.inputFieldsUrl += 's';
       appDefWithAuth.legacy.scriptingSource = appDefWithAuth.legacy.scriptingSource.replace(
         'movie_post_custom_search_fields_disabled',
         'movie_post_custom_search_fields'
@@ -2100,7 +2100,7 @@ describe('Integration Test', () => {
 
     it('scriptingless output fields', () => {
       const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
-      appDefWithAuth.legacy.searches.movie.outputFieldsUrl += 's';
+      appDefWithAuth.legacy.searches.movie.operation.outputFieldsUrl += 's';
 
       const compiledApp = schemaTools.prepareApp(appDefWithAuth);
       const app = createApp(appDefWithAuth);
@@ -2151,7 +2151,7 @@ describe('Integration Test', () => {
 
     it('KEY_post_custom_search_result_fields', () => {
       const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
-      appDefWithAuth.legacy.searches.movie.outputFieldsUrl += 's';
+      appDefWithAuth.legacy.searches.movie.operation.outputFieldsUrl += 's';
       appDefWithAuth.legacy.scriptingSource = appDefWithAuth.legacy.scriptingSource.replace(
         'movie_post_custom_search_result_fields_disabled',
         'movie_post_custom_search_result_fields'
