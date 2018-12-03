@@ -12,14 +12,25 @@ const testAuthSource = `
   });
 `;
 
-const maybeIncludeAuthSource = `
-  if (bundle.authData.api_key) {
-    request.headers['X-API-Key'] = bundle.authData.api_key;
-  }
-  return request;
+// const maybeIncludeAuthSource = `
+//   if (bundle.authData.api_key) {
+//     request.headers['X-API-Key'] = bundle.authData.api_key;
+//   }
+//   return request;
+// `;
+
+const beforeRequestSource = `
+  return z.legacyScripting.beforeRequest(request, z, bundle);
 `;
 
 module.exports = {
+  legacy: {
+    authentication: {
+      mapping: { 'X-Api-Key': '{{api_key}}' },
+      placement: 'header'
+    }
+  },
+
   authentication: {
     type: 'custom',
     test: { source: testAuthSource },
@@ -33,6 +44,12 @@ module.exports = {
     ]
   },
   beforeRequest: [
-    { source: maybeIncludeAuthSource, args: ['request', 'z', 'bundle'] }
+    {
+      source: beforeRequestSource,
+      args: ['request', 'z', 'bundle']
+    }
   ]
+  // beforeRequest: [
+  //   { source: maybeIncludeAuthSource, args: ['request', 'z', 'bundle'] }
+  // ]
 };
