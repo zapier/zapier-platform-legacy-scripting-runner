@@ -1,7 +1,7 @@
 const _ = require('lodash');
 
 const renderTemplate = (templateString, context) => {
-  const re = /{{([\s\S]+?)}}/g;
+  const re = /{{([^}]+)}}/g;
 
   // _.template doesn't allow us to set defaults, so we need to make sure all the
   // variables in templateString are defined (as empty strings) in context
