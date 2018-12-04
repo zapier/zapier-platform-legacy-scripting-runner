@@ -675,6 +675,8 @@ const legacyScriptingRunner = (Zap, zcli, input) => {
     body.target_url = bundle.targetUrl;
     body.event = event;
 
+    bundle._legacyEvent = event;
+
     return runEventCombo(
       bundle,
       key,
@@ -695,6 +697,8 @@ const legacyScriptingRunner = (Zap, zcli, input) => {
     body.subscription_url = bundle.targetUrl; // backward compatibility
     body.target_url = bundle.targetUrl;
     body.event = event;
+
+    bundle._legacyEvent = event;
 
     return runEventCombo(
       bundle,
