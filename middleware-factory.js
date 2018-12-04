@@ -166,7 +166,7 @@ const createAfterResponse = app => {
   const authType = _.get(app, 'authentication.type');
 
   const sessionAuthCheckResponse = (response, z) => {
-    if (response.status === 401 || response.status === 403) {
+    if (response.status === 401) {
       throw new z.errors.RefreshAuthError('Session key needs refreshing');
     }
     return response;
