@@ -12,13 +12,6 @@ const testAuthSource = `
   });
 `;
 
-// const maybeIncludeAuthSource = `
-//   if (bundle.authData.api_key) {
-//     request.headers['X-API-Key'] = bundle.authData.api_key;
-//   }
-//   return request;
-// `;
-
 const beforeRequestSource = `
   return z.legacyScripting.beforeRequest(request, z, bundle);
 `;
@@ -49,7 +42,4 @@ module.exports = {
       args: ['request', 'z', 'bundle']
     }
   ]
-  // beforeRequest: [
-  //   { source: maybeIncludeAuthSource, args: ['request', 'z', 'bundle'] }
-  // ]
 };
