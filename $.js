@@ -1,30 +1,36 @@
 'use strict';
 
+const jQuery = require('jquery');
 const xmldom = require('xmldom');
-const jQueryParam = require('node-jquery-param');
+const { JSDOM } = require('jsdom');
+
 const DOMParser = xmldom.DOMParser;
 
-const $ = {
-  param: jQueryParam,
-  parseXML: (data) => {
-    if (!data || typeof data !== 'string') {
-      return null;
-    }
+const dom = new JSDOM();
+const $ = jQuery(dom.window);
 
-    let xml;
+$.parseXML = data => {
+  if (!data || typeof data !== 'string') {
+    return null;
+  }
 
-    try {
-      xml = new DOMParser().parseFromString(data, 'text/xml');
-    } catch (e) {
-      // We can safely ignore this
-    }
+  let xml;
 
-    if (!xml || !xml.documentElement || xml.getElementsByTagName('parsererror').length) {
-      throw new Error(`Invalid XML: ${data}`);
-    }
+  try {
+    xml = new DOMParser().parseFromString(data, 'text/xml');
+  } catch (e) {
+    // We can safely ignore this
+  }
 
-    return xml;
-  },
+  if (
+    !xml ||
+    !xml.documentElement ||
+    xml.getElementsByTagName('parsererror').length
+  ) {
+    throw new Error(`Invalid XML: ${data}`);
+  }
+
+  return xml;
 };
 
 module.exports = $;

@@ -244,6 +244,7 @@ describe('Integration Test', () => {
 
         const firstContact = output.results[0];
         should.equal(firstContact.name, 'Patched by KEY_post_poll!');
+        should.equal(firstContact.jqueryText, 'jQuery works!');
       });
     });
 

@@ -25,9 +25,10 @@
   "dependencies": {
     "async": "2.6.1",
     "deasync": "0.1.12",
+    "jquery": "3.3.1",
+    "jsdom": "13.0.0",
     "lodash": "4.17.10",
     "moment-timezone": "0.5.17",
-    "node-jquery-param": "0.0.2",
     "request": "2.87.0",
     "xmldom": "0.1.27"
   },
