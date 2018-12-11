@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const querystring = require('querystring');
 
 const _ = require('lodash');
@@ -212,7 +213,7 @@ const compileLegacyScriptingSource = (source, zcli, app) => {
     source + '\nreturn Zap;'
   )(
     _,
-    require('crypto'),
+    crypto,
     require('async'),
     require('moment-timezone'),
     DOMParser,
@@ -596,7 +597,7 @@ const legacyScriptingRunner = (Zap, zcli, input) => {
     });
   };
 
-  const runTrigger = (bundle, key) => {
+  const runTrigger = async (bundle, key) => {
     const url = _.get(app, `legacy.triggers.${key}.operation.url`);
     bundle.request.url = url;
 
@@ -605,7 +606,7 @@ const legacyScriptingRunner = (Zap, zcli, input) => {
       ? 'object-first'
       : 'array-first';
 
-    return runEventCombo(
+    const results = await runEventCombo(
       bundle,
       key,
       'trigger.pre',
@@ -613,6 +614,19 @@ const legacyScriptingRunner = (Zap, zcli, input) => {
       'trigger.poll',
       { ensureType }
     );
+
+    if (Array.isArray(results)) {
+      results.forEach(result => {
+        if (!result.id) {
+          // Add a fake ID so we can bypass the trigger-has-id check in CLI core.
+          // This ID will be removed after the check by a special afterApp that only
+          // exists for converted apps.
+          result.id =
+            '__TEMP_ID_REMOVE_ME_' + crypto.randomBytes(20).toString('hex');
+        }
+      });
+    }
+    return results;
   };
 
   const runCatchHook = (bundle, key) => {

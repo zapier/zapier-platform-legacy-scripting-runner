@@ -218,6 +218,15 @@ const legacyScriptingSource = `
         });
       },
 
+      movie_post_poll_no_id: function(bundle) {
+        var movies = z.JSON.parse(bundle.response.content);
+        var url = '${AUTH_JSON_SERVER_URL}/movies';
+        return movies.map(movie => {
+          delete movie.id;
+          return movie;
+        });
+      },
+
       /*
        * Create/Action
        */
@@ -726,6 +735,17 @@ const MovieSearch = {
   }
 };
 
+const afterAppSource = `
+  if (Array.isArray(output.results)) {
+    output.results.forEach(result => {
+      if (typeof result.id === 'string' && result.id.startsWith('__TEMP_ID_REMOVE_ME_')) {
+        delete result.id;
+      }
+    });
+  }
+  return output;
+`;
+
 const App = {
   title: 'Example App',
   triggers: {
@@ -753,6 +773,12 @@ const App = {
       source: "return z.legacyScripting.run(bundle, 'hydrate.file');"
     }
   },
+  afterApp: [
+    {
+      args: ['output'],
+      source: afterAppSource
+    }
+  ],
   legacy: {
     scriptingSource: legacyScriptingSource,
 

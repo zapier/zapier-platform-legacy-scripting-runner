@@ -247,6 +247,31 @@ describe('Integration Test', () => {
       });
     });
 
+    it('KEY_post_poll, no id', () => {
+      const appDef = _.cloneDeep(appDefinition);
+      appDef.legacy.scriptingSource = appDef.legacy.scriptingSource.replace(
+        'movie_post_poll_no_id',
+        'movie_post_poll'
+      );
+      const _appDefWithAuth = withAuth(appDef, apiKeyAuth);
+      const _compiledApp = schemaTools.prepareApp(_appDefWithAuth);
+      const _app = createApp(_appDefWithAuth);
+
+      const input = createTestInput(
+        _compiledApp,
+        'triggers.movie.operation.perform'
+      );
+      input.bundle.authData = { api_key: 'secret' };
+      return _app(input).then(output => {
+        const movies = output.results;
+        movies.length.should.greaterThan(1);
+        movies.forEach(movie => {
+          should.not.exist(movie.id);
+          should.exist(movie.title);
+        });
+      });
+    });
+
     it('KEY_pre_poll & KEY_post_poll', () => {
       const input = createTestInput(
         compiledApp,
