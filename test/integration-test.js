@@ -233,7 +233,7 @@ describe('Integration Test', () => {
       });
     });
 
-    it('KEY_post_poll', () => {
+    it('KEY_post_poll, with jQuery', () => {
       const input = createTestInput(
         compiledApp,
         'triggers.contact_post.operation.perform'
