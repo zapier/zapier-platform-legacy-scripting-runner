@@ -213,9 +213,7 @@ const bundleConverter = async (bundle, event, z) => {
     },
     auth_fields: _.get(bundle, 'authData', {}),
     meta: _.get(bundle, 'meta', {}),
-    zap: {
-      id: _.get(bundle, ['meta', 'zap', 'id'], 0)
-    },
+    zap: _.get(bundle, 'meta.zap'),
     url_raw: _.get(bundle, '_legacyUrl', '')
   };
 
