@@ -13,7 +13,7 @@
   "scripts": {
     "lint": "node_modules/.bin/eslint .",
     "test": "export CLIENT_ID=1234 CLIENT_SECRET=asdf && node node_modules/mocha/bin/mocha --recursive -t 10000",
-    "posttest": "npm run lint",
+    "/posttest": "npm run lint",
     "preversion": "git pull",
     "postversion": "git push && git push --tags",
     "ci-test": "npm test && ./ci-test.js"
@@ -27,7 +27,7 @@
     "cheerio": "1.0.0-rc.2",
     "deasync": "0.1.12",
     "jquery-param": "1.0.1",
-    "lodash": "4.17.10",
+    "lodash": "4.17.11",
     "moment-timezone": "0.5.17",
     "request": "2.87.0",
     "underscore": "1.4.4",

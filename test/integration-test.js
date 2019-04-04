@@ -592,6 +592,38 @@ describe('Integration Test', () => {
         });
       });
     });
+
+    it('needsFlattenedData', () => {
+      const appDef = _.cloneDeep(appDefinition);
+      appDef.legacy.needsFlattenedData = true
+      const _appDefWithAuth = withAuth(appDef, apiKeyAuth);
+      const _compiledApp = schemaTools.prepareApp(_appDefWithAuth);
+      const _app = createApp(_appDefWithAuth);
+      const input = createTestInput(
+        _compiledApp,
+        'triggers.movie.operation.perform'
+      );
+      input.bundle.authData = { api_key: 'secret' };
+      input.bundle.meta = {
+        zap: { name: 'My Awesome Zap' }
+      };
+      return app(input).then(output => {
+        output.results.length.should.greaterThan(1);
+        should.equal(output.results[0].flattened, true)
+      });
+    });
+
+    it('not needsFlattenedData', () => {
+      const input = createTestInput(
+        compiledApp,
+        'triggers.movie.operation.perform'
+      );
+      input.bundle.authData = { api_key: 'secret' };
+      return app(input).then(output => {
+        output.results.length.should.greaterThan(1);
+        should.equal(output.results[0].flattened, undefined)
+      });
+    });
   });
 
   describe('hook trigger', () => {
@@ -1556,7 +1588,7 @@ describe('Integration Test', () => {
         // In reality, file will always be a "hydrate URL" that looks something
         // like https://zapier.com/engine/hydrate/1/abcd/, but in fact any
         // valid URL would work.
-        file: 'https://zapier-httpbin.herokuapp.com/image/png'
+        file: 'https://httpbin.zapier-tooling.com/image/png'
       };
       return app(input).then(output => {
         const file = output.results.file;
@@ -1581,7 +1613,7 @@ describe('Integration Test', () => {
       input.bundle.authData = { api_key: 'secret' };
       input.bundle.inputData = {
         filename: 'this is a pig.png',
-        file: 'https://zapier-httpbin.herokuapp.com/redirect-to?url=/image/png'
+        file: 'https://httpbin.zapier-tooling.com/redirect-to?url=/image/png'
       };
       return app(input).then(output => {
         const file = output.results.file;
@@ -1610,7 +1642,7 @@ describe('Integration Test', () => {
       input.bundle.authData = { api_key: 'secret' };
       input.bundle.inputData = {
         filename: 'this is a pig.png',
-        file: 'https://zapier-httpbin.herokuapp.com/image/png'
+        file: 'https://httpbin.zapier-tooling.com/image/png'
       };
       return app(input).then(output => {
         const file = output.results.file;
@@ -1639,7 +1671,7 @@ describe('Integration Test', () => {
       input.bundle.authData = { api_key: 'secret' };
       input.bundle.inputData = {
         filename: 'this is a wolf.jpg',
-        file: 'https://zapier-httpbin.herokuapp.com/image/png'
+        file: 'https://httpbin.zapier-tooling.com/image/png'
       };
       return app(input).then(output => {
         const file = output.results.file;
@@ -1668,7 +1700,7 @@ describe('Integration Test', () => {
       input.bundle.authData = { api_key: 'secret' };
       input.bundle.inputData = {
         filename: 'dont.care',
-        file: 'https://zapier-httpbin.herokuapp.com/image/png'
+        file: 'https://httpbin.zapier-tooling.com/image/png'
       };
       return app(input).then(output => {
         const file = output.results.file;
@@ -1697,7 +1729,7 @@ describe('Integration Test', () => {
       input.bundle.authData = { api_key: 'secret' };
       input.bundle.inputData = {
         filename: 'dont.care',
-        file: 'https://zapier-httpbin.herokuapp.com/image/png'
+        file: 'https://httpbin.zapier-tooling.com/image/png'
       };
       return app(input).then(output => {
         const file = output.results.file;
@@ -1726,7 +1758,7 @@ describe('Integration Test', () => {
       input.bundle.authData = { api_key: 'secret' };
       input.bundle.inputData = {
         filename: 'dont.care',
-        file: 'https://zapier-httpbin.herokuapp.com/image/png'
+        file: 'https://httpbin.zapier-tooling.com/image/png'
       };
       return app(input).then(output => {
         const file = output.results.file;
@@ -1755,7 +1787,7 @@ describe('Integration Test', () => {
       input.bundle.authData = { api_key: 'secret' };
       input.bundle.inputData = {
         filename: 'dont.care',
-        file: 'https://zapier-httpbin.herokuapp.com/image/png'
+        file: 'https://httpbin.zapier-tooling.com/image/png'
       };
       return app(input).then(output => {
         const file = output.results.file;
@@ -1784,7 +1816,7 @@ describe('Integration Test', () => {
       input.bundle.authData = { api_key: 'secret' };
       input.bundle.inputData = {
         filename: 'dont.care',
-        file: 'https://zapier-httpbin.herokuapp.com/image/png'
+        file: 'https://httpbin.zapier-tooling.com/image/png'
       };
       return app(input).then(output => {
         const file = output.results.file;
@@ -1813,7 +1845,7 @@ describe('Integration Test', () => {
       input.bundle.authData = { api_key: 'secret' };
       input.bundle.inputData = {
         filename: 'dont.care',
-        file: 'https://zapier-httpbin.herokuapp.com/image/png'
+        file: 'https://httpbin.zapier-tooling.com/image/png'
       };
       return app(input).then(output => {
         const file = output.results.file;
@@ -1918,7 +1950,7 @@ describe('Integration Test', () => {
         input.bundle.authData = { api_key: 'super secret' };
         input.bundle.inputData = {
           // This endpoint echoes what we send to it, so we know if auth info was sent
-          url: 'https://zapier-httpbin.herokuapp.com/get'
+          url: 'https://httpbin.zapier-tooling.com/get'
         };
         return app(input).then(output => {
           const {
@@ -1953,7 +1985,7 @@ describe('Integration Test', () => {
         input.bundle.authData = { api_key: 'super secret' };
         input.bundle.inputData = {
           // This endpoint echoes what we send to it, so we know if auth info was sent
-          url: 'https://zapier-httpbin.herokuapp.com/get',
+          url: 'https://httpbin.zapier-tooling.com/get',
           request: {
             params: { foo: 1, bar: 'hello' }
           }
@@ -1994,7 +2026,7 @@ describe('Integration Test', () => {
         input.bundle.authData = { api_key: 'super secret' };
         input.bundle.inputData = {
           // This endpoint echoes what we send to it, so we know if auth info was sent
-          url: 'https://zapier-httpbin.herokuapp.com/get',
+          url: 'https://httpbin.zapier-tooling.com/get',
           request: {
             params: { foo: 1, bar: 'hello' }
           },

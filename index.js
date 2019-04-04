@@ -316,6 +316,48 @@ const legacyScriptingRunner = (Zap, zcli, input) => {
     return _.template(templateString, options)(values);
   };
 
+  const ensureType = (result, ensureType) => {
+    if (ensureType) {
+      if (ensureType.startsWith('array-')) {
+        if (Array.isArray(result)) {
+          return result;
+        } else if (result && typeof result === 'object') {
+          if (ensureType === 'array-wrap') {
+            return [result];
+          } else {
+            // Find the first array in the response
+            for (const k in result) {
+              const value = result[k];
+              if (Array.isArray(value)) {
+                return value;
+              }
+            }
+          }
+        }
+        throw new Error('JSON results array could not be located.');
+      } else if (ensureType.startsWith('object-')) {
+        if (_.isPlainObject(result)) {
+          return result;
+        } else if (
+          Array.isArray(result) &&
+          result.length > 0 &&
+          _.isPlainObject(result[0])
+        ) {
+          // Used by auth test and auth label
+          return result[0];
+        }
+        throw new Error('JSON results object could not be located.');
+      }
+    }
+    return result;
+  };
+
+  const legacyFlattenData = (result) => {
+    const newResult = _.cloneDeep(result)
+    newResult.forEach(r => r.flattened = true);
+    return newResult
+  };
+
   const runEvent = (event, z, bundle) =>
     new Promise((resolve, reject) => {
       if (!Zap || _.isEmpty(Zap) || !event || !event.name || !z) {
@@ -392,7 +434,9 @@ const legacyScriptingRunner = (Zap, zcli, input) => {
         parseResponse: true,
         ensureType: false,
 
-        resetRequestForFullMethod: false
+        resetRequestForFullMethod: false,
+        // Does this app need WB v1 style stringified dicts/lists
+        needsFlattenedData: false
       },
       options
     );
@@ -453,39 +497,10 @@ const legacyScriptingRunner = (Zap, zcli, input) => {
         : zcli.JSON.parse(response.content);
     }
 
-    if (options.ensureType) {
-      if (options.ensureType.startsWith('array-')) {
-        if (Array.isArray(result)) {
-          return result;
-        } else if (result && typeof result === 'object') {
-          if (options.ensureType === 'array-wrap') {
-            return [result];
-          } else {
-            // Find the first array in the response
-            for (const k in result) {
-              const value = result[k];
-              if (Array.isArray(value)) {
-                return value;
-              }
-            }
-          }
-        }
-        throw new Error('JSON results array could not be located.');
-      } else if (options.ensureType.startsWith('object-')) {
-        if (_.isPlainObject(result)) {
-          return result;
-        } else if (
-          Array.isArray(result) &&
-          result.length > 0 &&
-          _.isPlainObject(result[0])
-        ) {
-          // Used by auth test and auth label
-          return result[0];
-        }
-        throw new Error('JSON results object could not be located.');
-      }
+    result = ensureType(result, options.ensureType);
+    if (options.needsFlattenedData) {
+      result = legacyFlattenData(result)
     }
-
     return result;
   };
 
@@ -620,6 +635,7 @@ const legacyScriptingRunner = (Zap, zcli, input) => {
 
   const runTrigger = (bundle, key) => {
     const url = _.get(app, `legacy.triggers.${key}.operation.url`);
+    const needsFlattenedData = _.get(app, `legacy.needsFlattenedData`);
     bundle.request.url = url;
 
     // For auth test we want to make sure we return an object instead of an array
@@ -636,7 +652,7 @@ const legacyScriptingRunner = (Zap, zcli, input) => {
       'trigger.pre',
       'trigger.post',
       'trigger.poll',
-      { ensureType }
+      { ensureType, needsFlattenedData }
     );
   };
 
