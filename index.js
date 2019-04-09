@@ -2,7 +2,7 @@ const querystring = require('querystring');
 
 const _ = require('lodash');
 const FormData = require('form-data');
-
+const flat = require('flat')
 const cleaner = require('zapier-platform-core/src/tools/cleaner');
 
 const createInternalRequestClient = input => {
@@ -352,10 +352,19 @@ const legacyScriptingRunner = (Zap, zcli, input) => {
     return result;
   };
 
-  const legacyFlattenData = (result) => {
-    const newResult = _.cloneDeep(result)
-    newResult.forEach(r => r.flattened = true);
-    return newResult
+  const legacyFlattenData = (data) => {
+    const flattened = _.cloneDeep(data)
+    if (Array.isArray(data)) {
+      flattened = data.toString()
+    } else if (data && typeof data === 'object') {
+      flattened = flat(data, {delimiter:'__'})
+      list = []
+      for (key in flattened) {
+        list.push(key + ',' + flattened[key])
+      }
+      flattened = l.join('|')
+    }
+    return flattened;
   };
 
   const runEvent = (event, z, bundle) =>
