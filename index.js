@@ -352,19 +352,56 @@ const legacyScriptingRunner = (Zap, zcli, input) => {
     return result;
   };
 
-  const legacyFlattenData = (data) => {
-    const flattened = _.cloneDeep(data)
-    if (Array.isArray(data)) {
-      flattened = data.toString()
-    } else if (data && typeof data === 'object') {
-      flattened = flat(data, {delimiter:'__'})
-      list = []
-      for (key in flattened) {
-        list.push(key + ',' + flattened[key])
-      }
-      flattened = l.join('|')
+  const isObject = (object) => {
+    return !Array.isArray(object) && typeof object === 'object'
+  };
+
+  const handleLegacyParams = (data) => {
+    // see handle_legacy_params in the python backend
+    if (!isObject(data)) {
+      return data;
     }
-    return flattened;
+    params = {};
+    for (var i in data) {
+      if (isObject(data[i])) {
+        param = [];
+        for (var j in data[i]) {
+          param.push(j + ',' + data[i][j]);
+        }
+        params[i] = param.join('|');
+      } else if (Array.isArray(data[i])) {
+        params[i] = data[i].join();
+      }
+    }
+    return params;
+  };
+
+  const textifyList = (data) => {
+    // see textify_list in the python backend
+    if (!Array.isArray(data)){
+      return data;
+    }
+    out = ''
+    allObj = data.every(isObject)
+    sep = allObj ? '\n' : ','
+
+    for (var i in data) {
+      if isObject(data[i]) {
+        for (var key in data[i]) {
+          out += key + ': ' + data[i][key] + sep
+        }
+      } else if (Array.isArray(data[i])) {
+        out += textifyList(data[i]) + sep
+      } else if (data[i] == null) {
+        continue
+      } else {
+        out += data[i] + sep
+      }
+      if (allObj) {
+        out += sep
+      }
+    }
+    return out.replace(/[\n,\,]*$/, '');
   };
 
   const runEvent = (event, z, bundle) =>
@@ -445,7 +482,8 @@ const legacyScriptingRunner = (Zap, zcli, input) => {
 
         resetRequestForFullMethod: false,
         // Does this app need WB v1 style stringified dicts/lists
-        needsFlattenedData: false
+        needsTextifyList: false
+        needsHandleLegacyParams: false
       },
       options
     );
@@ -507,8 +545,10 @@ const legacyScriptingRunner = (Zap, zcli, input) => {
     }
 
     result = ensureType(result, options.ensureType);
-    if (options.needsFlattenedData) {
-      result = legacyFlattenData(result)
+    if (options.needsTextifyList) {
+      result = textifyList(result)
+    else if (options.needsHandleLegacyParams) {
+      result = handleLegacyParams(result)
     }
     return result;
   };
@@ -644,7 +684,7 @@ const legacyScriptingRunner = (Zap, zcli, input) => {
 
   const runTrigger = (bundle, key) => {
     const url = _.get(app, `legacy.triggers.${key}.operation.url`);
-    const needsFlattenedData = _.get(app, `legacy.needsFlattenedData`);
+    const needsTextifyList = _.get(app, `legacy.needsFlattenedData`);
     bundle.request.url = url;
 
     // For auth test we want to make sure we return an object instead of an array
@@ -661,7 +701,7 @@ const legacyScriptingRunner = (Zap, zcli, input) => {
       'trigger.pre',
       'trigger.post',
       'trigger.poll',
-      { ensureType, needsFlattenedData }
+      { ensureType, needsTextifyList }
     );
   };
 
@@ -797,6 +837,7 @@ const legacyScriptingRunner = (Zap, zcli, input) => {
 
   const runCreate = (bundle, key) => {
     const legacyProps = _.get(app, `legacy.creates.${key}.operation`) || {};
+    const needsHandleLegacyParams = _.get(app, `legacy.needsFlattenedData`);
     const url = legacyProps.url;
     const fieldsExcludedFromBody = legacyProps.fieldsExcludedFromBody || [];
 
@@ -822,7 +863,8 @@ const legacyScriptingRunner = (Zap, zcli, input) => {
       key,
       'create.pre',
       'create.post',
-      'create.write'
+      'create.write',
+      {needsHandleLegacyParams}
     );
   };
 
