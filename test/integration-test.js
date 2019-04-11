@@ -607,9 +607,7 @@ describe('Integration Test', () => {
         zap: { name: 'My Awesome Zap' }
       };
       return app(input).then(output => {
-        //output.results.length.should.greaterThan(1);
-        console.log('FLAT');
-        console.log(output);
+        should.equal(typeof output.results, 'string');
       });
     });
 
