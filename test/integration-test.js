@@ -593,7 +593,7 @@ describe('Integration Test', () => {
       });
     });
 
-    it.only('needsFlattenedData', () => {
+    it('needsFlattenedData', () => {
       const appDef = _.cloneDeep(appDefinition);
       appDef.legacy.needsFlattenedData = true;
       const _appDefWithAuth = withAuth(appDef, apiKeyAuth);
@@ -613,7 +613,7 @@ describe('Integration Test', () => {
       });
     });
 
-    it.only('not needsFlattenedData', () => {
+    it('not needsFlattenedData', () => {
       const input = createTestInput(
         compiledApp,
         'triggers.movie.operation.perform'
