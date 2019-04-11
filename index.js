@@ -482,13 +482,17 @@ const legacyScriptingRunner = (Zap, zcli, input) => {
         resetRequestForFullMethod: false,
         // Does this app need WB v1 style stringified dicts/lists
         needsTextifyList: false,
-        needsHandleLegacyParams: false
+        needsHandleLegacyParams: false,
       },
       options
     );
 
     if (bundle.request) {
       bundle.request = replaceCurliesInRequest(bundle.request, bundle);
+    }
+
+    if (_.get(app, 'legacy.needsEmptyTriggerData')) {
+      bundle.triggerData = {};
     }
 
     let result;

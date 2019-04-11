@@ -633,6 +633,23 @@ describe('Integration Test', () => {
         output.results.length.should.greaterThan(1);
       });
     });
+
+    it('needsEmptyTriggerData', () => {
+      const appDef = _.cloneDeep(appDefinition);
+      appDef.legacy.needsEmptyTriggerData = true;
+      const _appDefWithAuth = withAuth(appDef, apiKeyAuth);
+      const _compiledApp = schemaTools.prepareApp(_appDefWithAuth);
+      const input = createTestInput(
+        _compiledApp,
+        'triggers.movie.operation.perform'
+      );
+      input.bundle.authData = { api_key: 'secret' };
+      return app(input).then( () => {
+        should.equal(typeof input.bundle.triggerData, 'object');
+        should.equal(Object.keys(input.bundle.triggerData).length, 0);
+        should.equal(Array.isArray(input.bundle.triggerData), false);
+      });
+    });
   });
 
   describe('hook trigger', () => {
