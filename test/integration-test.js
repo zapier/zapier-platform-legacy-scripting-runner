@@ -304,12 +304,24 @@ describe('Integration Test', () => {
         const data = output.results.form;
 
         should.deepEqual(data, {
-          client_id: process.env.CLIENT_ID,
-          client_secret: process.env.CLIENT_SECRET,
-          refresh_token: 'my_refresh_token',
-          grant_type: 'refresh_token',
-          foo: 'hello',
-          bar: 'world'
+          'bar': [
+            'world'
+          ],
+          'client_id': [
+            process.env.CLIENT_ID
+          ],
+          'client_secret': [
+            process.env.CLIENT_SECRET
+          ],
+          'foo': [
+            'hello'
+          ],
+          'grant_type': [
+            'refresh_token'
+          ],
+          'refresh_token': [
+            'my_refresh_token'
+          ]
         });
       });
     });
@@ -1668,13 +1680,13 @@ describe('Integration Test', () => {
       input.bundle.authData = { api_key: 'secret' };
       input.bundle.inputData = {
         filename: 'this is a wolf.jpg',
-        file: 'https://httpbin.zapier-tooling.com/image/png'
+        file: 'https://httpbin.zapier-tooling.com/image/jpeg'
       };
       return app(input).then(output => {
         const file = output.results.file;
-        should.equal(file.sha1, '44da0f5c0e4c27f945e97fccf59b69e06b767828');
+        should.equal(file.sha1, 'eb1db8fa7b8277f2de5d7b40d6cdbc708aac4e52');
         should.equal(file.mimetype, 'image/jpeg');
-        should.equal(file.originalname, 'file_pre_write_was_here.png');
+        should.equal(file.originalname, 'file_pre_write_was_here.jpeg');
 
         const data = JSON.parse(output.results.data);
         should.equal(data.filename, 'this is a wolf.jpg');
@@ -1788,7 +1800,7 @@ describe('Integration Test', () => {
       };
       return app(input).then(output => {
         const file = output.results.file;
-        should.equal(file.sha1, '2912ad01b4da27374578a856fe6012a33ddcb08e');
+        should.equal(file.sha1, '04bc9f090eafc29a4ab29b05f0f306365b017857');
         should.equal(file.mimetype, 'application/json');
         should.equal(file.originalname, 'an example.json');
 
@@ -1817,7 +1829,7 @@ describe('Integration Test', () => {
       };
       return app(input).then(output => {
         const file = output.results.file;
-        should.equal(file.sha1, '0db061d2625b61f970ad4ed0db1167f433552395');
+        should.equal(file.sha1, 'ebad26f071d502f26ea7afccea320195c1ad7e8e');
         should.equal(file.mimetype, 'application/json');
         should.equal(file.originalname, 'example.json');
 
@@ -1846,7 +1858,7 @@ describe('Integration Test', () => {
       };
       return app(input).then(output => {
         const file = output.results.file;
-        should.equal(file.sha1, 'a70183153aa29bfa87020ec30851cfde4dd08699');
+        should.equal(file.sha1, 'd7bd9d0e663a001291d1536715403744cbff054d');
         should.equal(file.mimetype, 'application/json');
         should.equal(file.originalname, '中文.json');
 
@@ -1964,7 +1976,7 @@ describe('Integration Test', () => {
 
           // Make sure prepareResponse middleware was run
           response.getHeader.should.be.Function();
-          should.equal(response.getHeader('content-type'), 'application/json');
+          should.equal(response.getHeader('content-type'), 'application/json; encoding=utf-8');
         });
       });
 
@@ -2005,7 +2017,7 @@ describe('Integration Test', () => {
 
           // Make sure prepareResponse middleware was run
           response.getHeader.should.be.Function();
-          should.equal(response.getHeader('content-type'), 'application/json');
+          should.equal(response.getHeader('content-type'), 'application/json; encoding=utf-8');
         });
       });
 
@@ -2050,7 +2062,7 @@ describe('Integration Test', () => {
 
           // Make sure prepareResponse middleware was run
           response.getHeader.should.be.Function();
-          should.equal(response.getHeader('content-type'), 'application/json');
+          should.equal(response.getHeader('content-type'), 'application/json; encoding=utf-8');
         });
       });
     });
