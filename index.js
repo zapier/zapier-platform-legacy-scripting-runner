@@ -491,7 +491,7 @@ const legacyScriptingRunner = (Zap, zcli, input) => {
       bundle.request = replaceCurliesInRequest(bundle.request, bundle);
     }
 
-    if (_.get(app, 'legacy.needsEmptyTriggerData')) {
+    if (_.get(app, 'legacy.needsTriggerData')) {
       bundle.triggerData = {};
     }
 

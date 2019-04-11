@@ -636,7 +636,7 @@ describe('Integration Test', () => {
 
     it('needsEmptyTriggerData', () => {
       const appDef = _.cloneDeep(appDefinition);
-      appDef.legacy.needsEmptyTriggerData = true;
+      appDef.legacy.needsTriggerData = true;
       const _appDefWithAuth = withAuth(appDef, apiKeyAuth);
       const _compiledApp = schemaTools.prepareApp(_appDefWithAuth);
       const input = createTestInput(
