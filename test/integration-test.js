@@ -595,10 +595,9 @@ describe('Integration Test', () => {
 
     it.only('needsFlattenedData', () => {
       const appDef = _.cloneDeep(appDefinition);
-      appDef.legacy.needsFlattenedData = true
+      appDef.legacy.needsFlattenedData = true;
       const _appDefWithAuth = withAuth(appDef, apiKeyAuth);
       const _compiledApp = schemaTools.prepareApp(_appDefWithAuth);
-      const _app = createApp(_appDefWithAuth);
       const input = createTestInput(
         _compiledApp,
         'triggers.movie.operation.perform'
@@ -609,12 +608,12 @@ describe('Integration Test', () => {
       };
       return app(input).then(output => {
         //output.results.length.should.greaterThan(1);
-        console.log('FLAT')
-        console.log(output)
+        console.log('FLAT');
+        console.log(output);
       });
     });
 
-    it('not needsFlattenedData', () => {
+    it.only('not needsFlattenedData', () => {
       const input = createTestInput(
         compiledApp,
         'triggers.movie.operation.perform'
