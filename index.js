@@ -360,11 +360,11 @@ const legacyScriptingRunner = (Zap, zcli, input) => {
     if (!_.isPlainObject(data)) {
       return data;
     }
-    var params = {};
-    for (var i in data) {
-      if (isObject(data[i])) {
-        var param = [];
-        for (var j in data[i]) {
+    let params = {};
+    for (const i in data) {
+      if (_.isPlainObject(data[i])) {
+        let param = [];
+        for (const j in data[i]) {
           param.push(j + ',' + data[i][j]);
         }
         params[i] = param.join('|');
@@ -382,16 +382,13 @@ const legacyScriptingRunner = (Zap, zcli, input) => {
     if (!Array.isArray(data)){
       return data;
     }
-    var out = '';
-    const allObj = data.every(isObject);
+    let out = '';
     const allObj = data.every(_.isPlainObject);
     const sep = allObj ? '\n' : ',';
 
-    for (var i in data) {
-      if (isObject(data[i])) {
-        for (var key in data[i]) {
-          out += key + ': ' + data[i][key] + sep;
+    for (const i of data) {
       if (_.isPlainObject(data[i])) {
+        for (const key in data[i]) {
           out += `${key}: ${data[i][key]}${sep}`;
         }
       } else if (Array.isArray(data[i])) {
