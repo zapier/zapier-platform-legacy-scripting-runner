@@ -353,15 +353,11 @@ const legacyScriptingRunner = (Zap, zcli, input) => {
     return result;
   };
 
-  const isObject = (object) => {
-    return !Array.isArray(object) && typeof object === 'object';
-  };
-
   /**
     see handle_legacy_params in the python backend
   */
   const handleLegacyParams = (data) => {
-    if (!isObject(data)) {
+    if (!_.isPlainObject(data)) {
       return data;
     }
     var params = {};
@@ -388,12 +384,14 @@ const legacyScriptingRunner = (Zap, zcli, input) => {
     }
     var out = '';
     const allObj = data.every(isObject);
+    const allObj = data.every(_.isPlainObject);
     const sep = allObj ? '\n' : ',';
 
     for (var i in data) {
       if (isObject(data[i])) {
         for (var key in data[i]) {
           out += key + ': ' + data[i][key] + sep;
+      if (_.isPlainObject(data[i])) {
         }
       } else if (Array.isArray(data[i])) {
         out += textifyList(data[i]) + sep;
