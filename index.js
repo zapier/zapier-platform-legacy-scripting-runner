@@ -357,8 +357,10 @@ const legacyScriptingRunner = (Zap, zcli, input) => {
     return !Array.isArray(object) && typeof object === 'object';
   };
 
+  /**
+    see handle_legacy_params in the python backend
+  */
   const handleLegacyParams = (data) => {
-    // see handle_legacy_params in the python backend
     if (!isObject(data)) {
       return data;
     }
@@ -377,8 +379,10 @@ const legacyScriptingRunner = (Zap, zcli, input) => {
     return params;
   };
 
+  /**
+    see textify_list in the python backend
+  */
   const textifyList = (data) => {
-    // see textify_list in the python backend
     if (!Array.isArray(data)){
       return data;
     }
