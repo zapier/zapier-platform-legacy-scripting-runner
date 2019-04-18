@@ -392,6 +392,7 @@ const legacyScriptingRunner = (Zap, zcli, input) => {
         for (var key in data[i]) {
           out += key + ': ' + data[i][key] + sep;
       if (_.isPlainObject(data[i])) {
+          out += `${key}: ${data[i][key]}${sep}`;
         }
       } else if (Array.isArray(data[i])) {
         out += textifyList(data[i]) + sep;
