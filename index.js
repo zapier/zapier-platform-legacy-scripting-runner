@@ -393,7 +393,7 @@ const legacyScriptingRunner = (Zap, zcli, input) => {
         }
       } else if (Array.isArray(data[i])) {
         out += textifyList(data[i]) + sep;
-      } else if (data[i] == null) {
+      } else if (data[i] === null) {
         continue;
       } else {
         out += data[i] + sep;
