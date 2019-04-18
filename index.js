@@ -316,37 +316,39 @@ const legacyScriptingRunner = (Zap, zcli, input) => {
   };
 
   const ensureIsType = (result, type) => {
-    if (type) {
-      if (type.startsWith('array-')) {
-        if (Array.isArray(result)) {
-          return result;
-        } else if (result && typeof result === 'object') {
-          if (type === 'array-wrap') {
-            return [result];
-          } else {
-            // Find the first array in the response
-            for (const k in result) {
-              const value = result[k];
-              if (Array.isArray(value)) {
-                return value;
-              }
+    if (!type) {
+      return result;
+    }
+
+    if (type.startsWith('array-')) {
+      if (Array.isArray(result)) {
+        return result;
+      } else if (result && typeof result === 'object') {
+        if (type === 'array-wrap') {
+          return [result];
+        } else {
+          // Find the first array in the response
+          for (const k in result) {
+            const value = result[k];
+            if (Array.isArray(value)) {
+              return value;
             }
           }
         }
-        throw new Error('JSON results array could not be located.');
-      } else if (type.startsWith('object-')) {
-        if (_.isPlainObject(result)) {
-          return result;
-        } else if (
-          Array.isArray(result) &&
-          result.length > 0 &&
-          _.isPlainObject(result[0])
-        ) {
-          // Used by auth test and auth label
-          return result[0];
-        }
-        throw new Error('JSON results object could not be located.');
       }
+      throw new Error('JSON results array could not be located.');
+    } else if (type.startsWith('object-')) {
+      if (_.isPlainObject(result)) {
+        return result;
+      } else if (
+        Array.isArray(result) &&
+        result.length > 0 &&
+        _.isPlainObject(result[0])
+      ) {
+        // Used by auth test and auth label
+        return result[0];
+      }
+      throw new Error('JSON results object could not be located.');
     }
     return result;
   };
