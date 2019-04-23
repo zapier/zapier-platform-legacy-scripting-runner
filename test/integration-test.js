@@ -605,35 +605,6 @@ describe('Integration Test', () => {
       });
     });
 
-    it('needsFlattenedData', () => {
-      const appDef = _.cloneDeep(appDefinition);
-      appDef.legacy.needsFlattenedData = true;
-      const _appDefWithAuth = withAuth(appDef, apiKeyAuth);
-      const _compiledApp = schemaTools.prepareApp(_appDefWithAuth);
-      const input = createTestInput(
-        _compiledApp,
-        'triggers.movie.operation.perform'
-      );
-      input.bundle.authData = { api_key: 'secret' };
-      input.bundle.meta = {
-        zap: { name: 'My Awesome Zap' }
-      };
-      return app(input).then(output => {
-        should.equal(typeof output.results, 'string');
-      });
-    });
-
-    it('not needsFlattenedData', () => {
-      const input = createTestInput(
-        compiledApp,
-        'triggers.movie.operation.perform'
-      );
-      input.bundle.authData = { api_key: 'secret' };
-      return app(input).then(output => {
-        output.results.length.should.greaterThan(1);
-      });
-    });
-
     it('needsEmptyTriggerData', () => {
       const appDef = _.cloneDeep(appDefinition);
       appDef.legacy.needsTriggerData = true;

@@ -3,6 +3,7 @@ const querystring = require('querystring');
 const _ = require('lodash');
 const FormData = require('form-data');
 const cleaner = require('zapier-platform-core/src/tools/cleaner');
+const flatten = require('flat');
 
 const createInternalRequestClient = input => {
   const addQueryParams = require('zapier-platform-core/src/http-middlewares/before/add-query-params');
@@ -386,23 +387,32 @@ const legacyScriptingRunner = (Zap, zcli, input) => {
     const allObj = data.every(_.isPlainObject);
     const sep = allObj ? '\n' : ',';
 
-    for (const i of data) {
-      if (_.isPlainObject(data[i])) {
-        for (const key in data[i]) {
-          out += `${key}: ${data[i][key]}${sep}`;
+    for (const el of data) {
+      if (_.isPlainObject(el)) {
+        for (const key in el) {
+          out += `${key}: ${el[key]}${sep}`;
         }
-      } else if (Array.isArray(data[i])) {
-        out += textifyList(data[i]) + sep;
-      } else if (data[i] === null) {
+      } else if (Array.isArray(el)) {
+        out += textifyList(el) + sep;
+      } else if (el === null) {
         continue;
       } else {
-        out += data[i] + sep;
+        out += el + sep;
       }
       if (allObj) {
         out += sep;
       }
     }
     return out.replace(/[\n,,]*$/, '');
+  };
+
+  const flattenDictionary = (prefix, data) => {
+    let flattenedData = flatten(_.cloneDeep(data), {'delimiter': '__'});
+    let out = {};
+    for (const key in flattenedData) {
+      out[`${prefix}__${key}`] = flattenedData[key];
+    }
+    return out;
   };
 
   const runEvent = (event, z, bundle) =>
@@ -551,7 +561,17 @@ const legacyScriptingRunner = (Zap, zcli, input) => {
 
     result = ensureIsType(result, options.ensureType);
     if (options.needsTextifyList) {
-      result = textifyList(result);
+      for (const i in result) {
+        for (const j in result[i]) {
+          if (Array.isArray(result[i][j])) {
+            result[i][j] = textifyList(result[i][j]);
+          } else if (_.isPlainObject(result[i][j])) {
+            let flattened = flattenDictionary(j, result[i][j]);
+            result[i] = Object.assign(result[i], flattened);
+            delete result[i][j];
+          }
+        }
+      }
     } else if (options.needsHandleLegacyParams) {
       result = handleLegacyParams(result);
     }
