@@ -403,7 +403,7 @@ const legacyScriptingRunner = (Zap, zcli, input) => {
         out += sep;
       }
     }
-    return out.replace(/[\n,,]*$/, '');
+    return out.replace(/[\n,]*$/, '');
   };
 
   const flattenDictionary = (prefix, data) => {
