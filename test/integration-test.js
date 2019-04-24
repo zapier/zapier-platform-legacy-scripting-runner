@@ -605,6 +605,30 @@ describe('Integration Test', () => {
       });
     });
 
+    it('needsFlattenedData trigger', () => {
+      const appDef = _.cloneDeep(appDefinition);
+      appDef.legacy.needsFlattenedData = true;
+      const _appDefWithAuth = withAuth(appDef, apiKeyAuth);
+      const _compiledApp = schemaTools.prepareApp(_appDefWithAuth);
+      const input = createTestInput(
+        _compiledApp,
+        'triggers.movie.operation.perform'
+      );
+      input.bundle.authData = { api_key: 'secret' };
+      return app(input).then( (output) => {
+        let expected_result = {
+          id: '1',
+          title: 'title 1',
+          releaseDate: 1471295527,
+          genre: 'genre 1',
+          cast: 'John Doe,Jane Doe',
+          meta__running_time: 120,
+          meta__format: 'widescreen'
+        };
+        should.equal(_.isEqual(output.results[0], expected_result), true);
+      });
+    });
+
     it('needsEmptyTriggerData', () => {
       const appDef = _.cloneDeep(appDefinition);
       appDef.legacy.needsTriggerData = true;
