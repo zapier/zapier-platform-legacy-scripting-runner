@@ -573,6 +573,13 @@ const legacyScriptingRunner = (Zap, zcli, input) => {
         }
       }
     } else if (options.needsHandleLegacyParams) {
+      for (const i in result) {
+        for (const j in result[i]) {
+          if (Array.isArray(result[i][j])) {
+            result[i][j] = textifyList(result[i][j]);
+          }
+        }
+      }
       result = handleLegacyParams(result);
     }
     return result;

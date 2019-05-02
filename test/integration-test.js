@@ -990,6 +990,21 @@ describe('Integration Test', () => {
   });
 
   describe('create', () => {
+    it.only('handleLegacyParams action', () => {
+      const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
+      appDefWithAuth.legacy.creates.movie.operation.url += 's';
+      const compiledApp = schemaTools.prepareApp(appDefWithAuth);
+      const app = createApp(appDefWithAuth);
+      const input = createTestInput(
+        compiledApp,
+        'creates.movie.operation.perform'
+      );
+      input.bundle.authData = { api_key: 'secret' };
+      return app(input).then( (output) => {
+        should.equal(_.isPlainObject(output.results), true);
+      });
+    });
+
     it('scriptingless perform', () => {
       const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
       appDefWithAuth.legacy.creates.movie.operation.url += 's';
