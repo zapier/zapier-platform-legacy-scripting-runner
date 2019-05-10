@@ -1,5 +1,7 @@
 const _ = require('lodash');
 const should = require('should');
+const nock = require('nock');
+const zlib = require('zlib');
 
 const { AUTH_JSON_SERVER_URL } = require('./auth-json-server');
 const apiKeyAuth = require('./example-app/api-key-auth');
@@ -32,6 +34,10 @@ const createAppWithCustomBefores = (appRaw, customBefores) => {
 
   const app = createCommandHandler(frozenCompiledApp);
   return applyMiddleware(befores, afters, app);
+};
+
+const decodeGzipResponse = (response) => {
+  return JSON.parse(zlib.gunzipSync(Buffer.from(response.join(''), 'hex')).toString('utf-8'));
 };
 
 describe('Integration Test', () => {
@@ -606,6 +612,10 @@ describe('Integration Test', () => {
     });
 
     it('needsFlattenedData trigger', () => {
+      nock.recorder.rec({
+        output_objects: true,
+        dont_print: true,
+      });
       const appDef = _.cloneDeep(appDefinition);
       appDef.legacy.needsFlattenedData = true;
       const _appDefWithAuth = withAuth(appDef, apiKeyAuth);
@@ -616,6 +626,28 @@ describe('Integration Test', () => {
       );
       input.bundle.authData = { api_key: 'secret' };
       return app(input).then( (output) => {
+        // The API result should be a proper object
+        const nockCalls = nock.recorder.play();
+        should.equal(nockCalls.length, 1);
+        const call = nockCalls[0];
+        const response = decodeGzipResponse(call.response);
+        let expected_api_result = {
+          id: '1',
+          title: 'title 1',
+          releaseDate: 1471295527,
+          genre: 'genre 1',
+          cast: [
+            'John Doe',
+            'Jane Doe'
+          ],
+          meta: {
+            running_time: 120,
+            format: 'widescreen'
+          }
+        };
+        should.equal(_.isEqual(response[0], expected_api_result), true);
+
+        // The result from the scripting runner should be flattened
         let expected_result = {
           id: '1',
           title: 'title 1',
@@ -626,6 +658,7 @@ describe('Integration Test', () => {
           meta__format: 'widescreen'
         };
         should.equal(_.isEqual(output.results[0], expected_result), true);
+        nock.restore();
       });
     });
 
