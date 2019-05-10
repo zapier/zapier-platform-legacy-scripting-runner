@@ -645,7 +645,7 @@ describe('Integration Test', () => {
             format: 'widescreen'
           }
         };
-        should.equal(_.isEqual(response[0], expected_api_result), true);
+        should.deepEqual(response[0], expected_api_result);
 
         // The result from the scripting runner should be flattened
         let expected_result = {
@@ -657,7 +657,7 @@ describe('Integration Test', () => {
           meta__running_time: 120,
           meta__format: 'widescreen'
         };
-        should.equal(_.isEqual(output.results[0], expected_result), true);
+        should.deepEqual(output.results[0], expected_result);
         nock.restore();
       });
     });
