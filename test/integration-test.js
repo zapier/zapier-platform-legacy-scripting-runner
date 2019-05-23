@@ -1,7 +1,6 @@
 const _ = require('lodash');
 const should = require('should');
 const nock = require('nock');
-const zlib = require('zlib');
 
 const { AUTH_JSON_SERVER_URL } = require('./auth-json-server');
 const apiKeyAuth = require('./example-app/api-key-auth');
@@ -36,10 +35,6 @@ const createAppWithCustomBefores = (appRaw, customBefores) => {
   return applyMiddleware(befores, afters, app);
 };
 
-const decodeGzipResponse = (response) => {
-  return JSON.parse(zlib.gunzipSync(Buffer.from(response.join(''), 'hex')).toString('utf-8'));
-};
-
 describe('Integration Test', () => {
   const testLogger = (/* message, data */) => {
     // console.log(message, data);
@@ -54,6 +49,10 @@ describe('Integration Test', () => {
     };
     return createInput(compiledApp, event, testLogger);
   };
+
+  beforeEach(() => {
+    if (nock.isActive()) {nock.restore();}
+  });
 
   describe('session auth', () => {
     const appDefWithAuth = withAuth(appDefinition, sessionAuthConfig);
@@ -612,10 +611,7 @@ describe('Integration Test', () => {
     });
 
     it('needsFlattenedData trigger', () => {
-      nock.recorder.rec({
-        output_objects: true,
-        dont_print: true,
-      });
+      if (!nock.isActive()) {nock.activate();}
       const appDef = _.cloneDeep(appDefinition);
       appDef.legacy.needsFlattenedData = true;
       const _appDefWithAuth = withAuth(appDef, apiKeyAuth);
@@ -625,13 +621,7 @@ describe('Integration Test', () => {
         'triggers.movie.operation.perform'
       );
       input.bundle.authData = { api_key: 'secret' };
-      return app(input).then( (output) => {
-        // The API result should be a proper object
-        const nockCalls = nock.recorder.play();
-        should.equal(nockCalls.length, 1);
-        const call = nockCalls[0];
-        const response = decodeGzipResponse(call.response);
-        let expected_api_result = {
+      nock(AUTH_JSON_SERVER_URL).get('/movies').reply(200, [{
           id: '1',
           title: 'title 1',
           releaseDate: 1471295527,
@@ -644,9 +634,8 @@ describe('Integration Test', () => {
             running_time: 120,
             format: 'widescreen'
           }
-        };
-        should.deepEqual(response[0], expected_api_result);
-
+        }]);
+      return app(input).then( (output) => {
         // The result from the scripting runner should be flattened
         let expected_result = {
           id: '1',
@@ -658,7 +647,6 @@ describe('Integration Test', () => {
           meta__format: 'widescreen'
         };
         should.deepEqual(output.results[0], expected_result);
-        nock.restore();
       });
     });
 
@@ -1023,18 +1011,43 @@ describe('Integration Test', () => {
   });
 
   describe('create', () => {
-    it.only('handleLegacyParams action', () => {
+    it('handleLegacyParams action', () => {
+      if (!nock.isActive()) {nock.activate();}
       const appDefWithAuth = withAuth(appDefinition, apiKeyAuth);
       appDefWithAuth.legacy.creates.movie.operation.url += 's';
+      appDefWithAuth.legacy.needsFlattenedData = true;
+
       const compiledApp = schemaTools.prepareApp(appDefWithAuth);
       const app = createApp(appDefWithAuth);
+
       const input = createTestInput(
         compiledApp,
         'creates.movie.operation.perform'
       );
       input.bundle.authData = { api_key: 'secret' };
-      return app(input).then( (output) => {
-        should.equal(_.isPlainObject(output.results), true);
+      input.bundle.inputData = {
+        'title': 'title 1',
+        'releaseDate': 1471295527,
+        'genre': 'genre 1',
+        'cast': [
+          'John Doe',
+          'Jane Doe'
+        ],
+        'meta': {
+          'running_time': 120,
+          'format': 'widescreen'
+        }
+      };
+      input.bundle.authData = { api_key: 'secret' };
+      // title key is removed deliberately for other tests
+      nock(AUTH_JSON_SERVER_URL).post('/movies', {
+        'releaseDate': 1471295527,
+        'genre': 'genre 1',
+        'cast': 'John Doe,Jane Doe',
+        'meta': 'running_time|120,format|widescreen',
+      }).reply(200, {'id': 'abcd1234'});
+      return app(input).then( () => {
+        // we only care that the mocked api call had the right format payload
       });
     });
 
