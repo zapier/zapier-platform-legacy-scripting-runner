@@ -386,7 +386,7 @@ const legacyScriptingRunner = (Zap, zcli, input) => {
         for (const j in data[i]) {
           param.push(j + '|' + data[i][j]);
         }
-        params[i] = param.join(',');
+        params[i] = param.join('\n');
       } else if (Array.isArray(data[i])) {
         params[i] = data[i].join();
       }

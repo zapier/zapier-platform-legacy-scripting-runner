@@ -1031,7 +1031,7 @@ describe('Integration Test', () => {
         'releaseDate': 1471295527,
         'genre': 'genre 1',
         'cast': 'John Doe,Jane Doe',
-        'meta': 'running_time|120,format|widescreen',
+        'meta': 'running_time|120\nformat|widescreen',
       }).reply(200, {'id': 'abcd1234'});
       return app(input).then( () => {
         // we only care that the mocked api call had the right format payload
