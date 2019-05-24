@@ -888,6 +888,10 @@ const legacyScriptingRunner = (Zap, zcli, input) => {
 
     markFileFieldsInBundle(bundle, inputFields);
 
+    if (needsFlattenedData) {
+      bundle.inputData = handleLegacyParams(bundle.inputData);
+    }
+
     const body = {};
     _.each(bundle.inputData, (v, k) => {
       if (fieldsExcludedFromBody.indexOf(k) === -1) {
@@ -899,10 +903,6 @@ const legacyScriptingRunner = (Zap, zcli, input) => {
     bundle.request.method = 'POST';
     bundle.request.url = url;
     bundle.request.body = body;
-    if (needsFlattenedData) {
-      bundle.request.body = handleLegacyParams(body);
-      bundle.inputData = handleLegacyParams(bundle.inputData);
-    }
 
     return runEventCombo(
       bundle,
