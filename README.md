@@ -1,3 +1,9 @@
+# MOVED
+
+This code has been moved to: https://github.com/zapier/zapier-platform/tree/master/packages/legacy-scripting-runner
+
+---
+
 [![Build Status](https://travis-ci.org/zapier/zapier-platform-legacy-scripting-runner.svg?branch=master)](https://travis-ci.org/zapier/zapier-platform-legacy-scripting-runner)
 
 # zapier-platform-legacy-scripting-runner
