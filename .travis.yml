@@ -6,11 +6,3 @@ before_script: npm install -g zapier-platform-cli
 script: npm run ci-test
 notifications:
   email: false
-deploy:
-  provider: npm
-  email: engineering@zapier.com
-  api_key: $NPM_TOKEN
-  on:
-    tags: true
-    node: "8.10.0"
-  skip_cleanup: true
